@@ -263,7 +263,7 @@ QRU/
 
 ## 팀원 및 역할 👥
 
-### 김정현 🔗 [CodingKirby](https://github.com/CodingKirby)
+### 김정현 🔗 [Hyeon](https://github.com/hyeoniverse)
 
 - [Readme.md](http://readme.md/) 작성
 - 기획
