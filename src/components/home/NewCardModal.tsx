@@ -17,6 +17,7 @@ import { hashPassword } from "../../utils/passwordUtil";
 import { isFirebaseConfigured } from "../../services/firebase";
 
 import Modal from "../common/Modal";
+import InputCheck from "../common/InputCheck";
 import Button from "../common/Button";
 import FirebaseNotice from "../common/FirebaseNotice";
 import Form from "../form/Form";
@@ -100,6 +101,7 @@ function NewCardModal() {
     const input: NewCard = {
       ...form.getSubmitData(),
       uid: user?.uid ?? null,
+      inShuffle: form.inShuffle,
     };
 
     if (!user) {
@@ -148,6 +150,21 @@ function NewCardModal() {
                 </>
               )}
             </div>
+
+            {isFirebaseConfigured && (
+              <label className="shuffle-toggle" htmlFor="in-shuffle">
+                <InputCheck
+                  id="in-shuffle"
+                  size="medium"
+                  checked={form.inShuffle}
+                  onChange={(event) => form.changeShuffle(event.target.checked)}
+                />
+                <span>
+                  랜덤 셔플에 내 명함 노출
+                  <em>공개로 설정한 항목만 다른 사람에게 보입니다.</em>
+                </span>
+              </label>
+            )}
           </div>
           <div className="form-content" ref={scrollRef}>
             {isFirebaseConfigured ? (
@@ -209,6 +226,25 @@ const StyledNewCard = styled.div`
       display: flex;
       flex-direction: row;
       gap: 0.5rem;
+    }
+
+    .shuffle-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+
+      span {
+        display: flex;
+        flex-direction: column;
+        font-size: ${({ theme }) => theme.fontSize.small};
+      }
+
+      em {
+        font-style: normal;
+        font-size: ${({ theme }) => theme.fontSize.extraSmall};
+        color: ${({ theme }) => theme.color.textSecondary};
+      }
     }
   }
 

@@ -1,5 +1,5 @@
 import { Timestamp } from "firebase/firestore";
-import { CardEntry } from "../utils/cardUtil";
+import { CardEntry, CardSearchIndex } from "../utils/cardUtil";
 import { PasswordDigest } from "../utils/passwordUtil";
 import { FormValues, FormVisibility } from "./formType";
 
@@ -27,6 +27,10 @@ export type PublicCard = {
   uid: string | null;
   createdAt: Timestamp;
   entries: CardEntry[];
+  /** 랜덤 셔플 결과에 노출할지 */
+  inShuffle: boolean;
+  /** 항목 id -> 정규화된 값. 조건 검색에만 쓴다. */
+  search: CardSearchIndex;
 };
 
 /**
@@ -52,5 +56,7 @@ export type NewCard = {
   values: FormValues;
   isPublic: FormVisibility;
   uid: string | null;
+  /** 랜덤 셔플 결과에 노출할지 */
+  inShuffle: boolean;
   password?: PasswordDigest;
 };
