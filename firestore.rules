@@ -11,13 +11,16 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // 키 목록은 PublicCard 타입(src/types/cardType.ts)과 정확히 일치해야 한다.
+    // 한쪽에만 필드를 더하면 hasOnly 가 막아 생성이 통째로 거부된다.
+    //
     // 상한값은 앱이 실제로 만들어내는 최대치에 여유를 둔 것이다.
     // 기본 항목 11개 + 추가 항목 5개 -> entries 최대 16개
     // values 키는 항목당 최대 3개(본문 / 직접입력 제목 / 내용) -> 최대 30개 남짓
     function isCardShape() {
       let card = request.resource.data;
 
-      return card.keys().hasOnly(['serialNumber', 'uid', 'createdAt', 'entries', 'inShuffle', 'search'])
+      return card.keys().hasOnly(['serialNumber', 'uid', 'createdAt', 'entries', 'inShuffle', 'search', 'hasPhoto'])
         && card.serialNumber is string
         && card.serialNumber.size() <= 32
         && card.createdAt is timestamp
