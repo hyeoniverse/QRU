@@ -21,6 +21,7 @@ import InputCheck from "../common/InputCheck";
 import Button from "../common/Button";
 import FirebaseNotice from "../common/FirebaseNotice";
 import Form from "../form/Form";
+import PhotoPicker from "../form/PhotoPicker";
 import PasswordPopup from "./PasswordPopup";
 
 const GUIDE = `1. "항목 추가 버튼"으로 추가적인 정보를 입력할 수 있습니다.
@@ -102,6 +103,7 @@ function NewCardModal() {
       ...form.getSubmitData(),
       uid: user?.uid ?? null,
       inShuffle: form.inShuffle,
+      ...(form.photo ? { photo: form.photo } : {}),
     };
 
     if (!user) {
@@ -167,6 +169,14 @@ function NewCardModal() {
             )}
           </div>
           <div className="form-content" ref={scrollRef}>
+            {isFirebaseConfigured && (
+              <PhotoPicker
+                value={form.photo}
+                onChange={form.changePhoto}
+                onError={(message) => notify("error", message)}
+              />
+            )}
+
             {isFirebaseConfigured ? (
               <Form
                 fields={form.fields}
@@ -249,6 +259,9 @@ const StyledNewCard = styled.div`
   }
 
   .form-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
     padding: 0 2rem 2rem 2rem;
     overflow-y: scroll;
     /* 폼 끝까지 스크롤해도 뒤쪽 페이지로 스크롤이 넘어가지 않도록 한다. */

@@ -15,8 +15,11 @@ import {
 import { requireDb } from "./firebase";
 import {
   CARD_COLLECTION,
+  CardCollection,
   CardDocument,
+  CardPhoto,
   NewCard,
+  PHOTO_PATH,
   PRIVATE_CARD_PATH,
   PrivateCard,
   PublicCard,
@@ -58,6 +61,7 @@ export const createCard = async (
     entries,
     inShuffle: input.inShuffle,
     search: createSearchIndex(entries),
+    hasPhoto: Boolean(input.photo),
   };
 
   const privateCard: PrivateCard = {
@@ -71,6 +75,12 @@ export const createCard = async (
   const batch = writeBatch(db);
   batch.set(cardRef, publicCard);
   batch.set(doc(cardRef, ...PRIVATE_CARD_PATH), privateCard);
+  if (input.photo) {
+    batch.set(doc(cardRef, ...PHOTO_PATH), {
+      uid: input.uid,
+      dataUrl: input.photo,
+    } satisfies CardPhoto);
+  }
   await batch.commit();
 
   return { id: cardRef.id, serialNumber };
@@ -99,15 +109,18 @@ const toDate = (value: unknown): Date | null => {
  */
 const toCardDocument = (
   id: string,
+  collectionName: CardCollection,
   data: Partial<PublicCard>
 ): CardDocument => ({
   id,
+  collection: collectionName,
   serialNumber: data.serialNumber ?? "",
   uid: data.uid ?? null,
   createdAt: toDate(data.createdAt),
   entries: Array.isArray(data.entries) ? data.entries : [],
   inShuffle: data.inShuffle ?? false,
   search: data.search ?? {},
+  hasPhoto: data.hasPhoto ?? false,
 });
 
 /** 문서 id 로 공개 명함을 읽는다. 없으면 null */
@@ -119,7 +132,11 @@ export const getCard = async (id: string): Promise<CardDocument | null> => {
     const snapshot = await getDoc(doc(db, collectionName, id));
 
     if (snapshot.exists()) {
-      return toCardDocument(snapshot.id, snapshot.data() as Partial<PublicCard>);
+      return toCardDocument(
+        snapshot.id,
+        collectionName,
+        snapshot.data() as Partial<PublicCard>
+      );
     }
   }
 
@@ -166,8 +183,15 @@ export const searchCards = async (
   );
 
   return results
-    .flatMap((snapshot) => snapshot.docs)
-    .map((found) => toCardDocument(found.id, found.data() as Partial<PublicCard>))
+    .flatMap((snapshot, index) =>
+      snapshot.docs.map((found) =>
+        toCardDocument(
+          found.id,
+          Object.values(CARD_COLLECTION)[index],
+          found.data() as Partial<PublicCard>
+        )
+      )
+    )
     .filter((card) => matchesSearchText(card.entries, criteria.text ?? ""));
 };
 
@@ -186,4 +210,21 @@ export const fetchRandomCard = async (
   const pool = fresh.length > 0 ? fresh : candidates;
 
   return pool[Math.floor(Math.random() * pool.length)];
+};
+
+/**
+ * 명함 사진을 읽는다. 없으면 null
+ *
+ * 명함 문서와 따로 두었기 때문에 한 장을 화면에 띄울 때만 부른다.
+ */
+export const getCardPhoto = async (card: CardDocument): Promise<string | null> => {
+  if (!card.hasPhoto) return null;
+
+  const snapshot = await getDoc(
+    doc(requireDb(), card.collection, card.id, ...PHOTO_PATH)
+  );
+  if (!snapshot.exists()) return null;
+
+  const { dataUrl } = snapshot.data() as Partial<CardPhoto>;
+  return typeof dataUrl === "string" && dataUrl ? dataUrl : null;
 };

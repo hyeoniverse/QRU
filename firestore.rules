@@ -25,7 +25,8 @@ service cloud.firestore {
         && card.entries.size() <= 30
         && card.inShuffle is bool
         && card.search is map
-        && card.search.keys().size() <= 60;
+        && card.search.keys().size() <= 60
+        && card.hasPhoto is bool;
     }
 
     /**
@@ -40,6 +41,17 @@ service cloud.firestore {
      */
     function isShuffleQuery() {
       return request.query.limit <= 50 && resource.data.inShuffle == true;
+    }
+
+    // 사진은 Storage 대신 데이터 URL 로 담는다. 문서 한도를 넘지 않도록
+    // 클라이언트에서 줄이고, 여기서도 같은 상한으로 한 번 더 막는다.
+    function isPhotoShape() {
+      let photo = request.resource.data;
+
+      return photo.keys().hasOnly(['uid', 'dataUrl'])
+        && photo.dataUrl is string
+        && photo.dataUrl.size() <= 150000
+        && photo.dataUrl.matches('data:image/.*');
     }
 
     function isPrivateCardShape() {
@@ -97,6 +109,26 @@ service cloud.firestore {
         allow delete: if request.auth != null
           && resource.data.uid == request.auth.uid;
       }
+
+      // 사진은 명함과 함께 공개된다. 수정/삭제는 소유자만 한다.
+      // 명함 문서와 같은 배치로 만들어지므로 부모를 get() 할 수 없다.
+      // private 문서와 마찬가지로 uid 를 여기에도 두고 그것으로 판단한다.
+      match /photo/data {
+        allow get: if true;
+        allow list: if false;
+
+        allow create: if request.auth != null
+          && isPhotoShape()
+          && request.resource.data.uid == request.auth.uid;
+
+        allow update: if request.auth != null
+          && isPhotoShape()
+          && resource.data.uid == request.auth.uid
+          && request.resource.data.uid == resource.data.uid;
+
+        allow delete: if request.auth != null
+          && resource.data.uid == request.auth.uid;
+      }
     }
 
     // -------------------------------------------------------------- 비회원 명함
@@ -117,6 +149,14 @@ service cloud.firestore {
         // 비밀번호가 들어 있으므로 클라이언트에는 절대 내려보내지 않는다.
         allow read: if false;
         allow create: if isPrivateCardShape() && request.resource.data.uid == null;
+        allow update, delete: if false;
+      }
+
+      match /photo/data {
+        allow get: if true;
+        allow list: if false;
+        allow create: if isPhotoShape() && request.resource.data.uid == null;
+        // 비회원 명함은 비밀번호 확인이 서버에서만 가능해 수정/삭제를 막아둔다.
         allow update, delete: if false;
       }
     }
