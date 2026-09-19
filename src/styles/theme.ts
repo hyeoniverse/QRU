@@ -7,6 +7,7 @@ export type ColorKey =
   | "secondaryVariant" // 보조 색상 변형
   | "background" // 배경 색상
   | "surface" // 표면 색상 ex) 카드, 버튼
+  | "warning" // 경고 색상 ex) 글자수 한도 임박
   | "error" // 오류 색상
   | "onPrimary" // 주 색상 위의 텍스트 색상
   | "onSecondary" // 보조 색상 위의 텍스트 색상
@@ -102,6 +103,7 @@ export const lightTheme: Theme = {
     secondaryVariant: "#a8edea",
     background: "linear-gradient(135deg, #a8edea, #fed6e3)",
     surface: "#fafafa",
+    warning: "#c77d18",
     error: "#FFA0C0",
     onPrimary: "#f4f4f4",
     onSecondary: "#213C48",
@@ -222,6 +224,7 @@ export const darkTheme: Theme = {
     secondaryVariant: "#213C48",
     background: "linear-gradient(135deg, #3a5663, #65474c)",
     surface: "#2b2b2b",
+    warning: "#e8a33d",
     error: "#cf6679",
     onPrimary: "#141414",
     onSecondary: "#ffffff",

@@ -187,6 +187,10 @@ const StyledForm = styled.form`
       font-size: ${({ theme }) => theme.fontSize.extraSmall};
       color: ${({ theme }) => theme.color.textSecondary};
 
+      &.near {
+        color: ${({ theme }) => theme.color.warning};
+      }
+
       &.over {
         color: ${({ theme }) => theme.color.error};
         font-weight: bold;

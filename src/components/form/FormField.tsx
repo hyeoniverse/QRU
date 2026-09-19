@@ -34,6 +34,9 @@ interface Props extends FieldHandlers {
   onRemove?: (id: string) => void;
 }
 
+/** 한도의 이 비율을 넘으면 글자수를 경고색으로 보여준다. */
+const COUNTER_WARN_RATIO = 0.8;
+
 function FormField({
   field,
   values,
@@ -73,8 +76,12 @@ function FormField({
     const length = (values[fieldId] ?? "").trim().length;
     const over = length - limit;
 
+    // 한도에 가까워지면 미리 알려주고, 넘기면 몇 자를 넘겼는지 말해준다.
+    const state =
+      over > 0 ? "over" : length >= limit * COUNTER_WARN_RATIO ? "near" : "";
+
     return (
-      <p className={over > 0 ? "field-counter over" : "field-counter"}>
+      <p className={`field-counter ${state}`}>
         {over > 0 ? `${length} / ${limit} · ${over}자 초과` : `${length} / ${limit}`}
       </p>
     );
