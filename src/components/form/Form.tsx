@@ -178,10 +178,34 @@ const StyledForm = styled.form`
       margin-left: 0.25rem;
     }
 
-    /* 글자수는 입력 오른쪽 아래에 조용히 둔다. */
+    /*
+     * 오류 문구와 글자수가 함께 놓이는 줄.
+     * 비어 있어도 한 줄만큼 자리를 잡아, 오류가 떴다 사라져도
+     * 아래 항목이 밀리지 않는다.
+     */
+    .field-footer {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      font-size: ${({ theme }) => theme.fontSize.extraSmall};
+      /* 예약 높이가 실제 줄 높이와 어긋나면 그만큼 밀린다. 같은 값을 쓴다. */
+      line-height: 1.5;
+      min-height: 1.5em;
+    }
+
+    /*
+     * 두 칸으로 줄어든 항목은 오류 문구와 글자수가 한 줄에 다 들어가지
+     * 않아 두 줄이 된다. 미리 두 줄만큼 잡아둔다.
+     */
+    &.span-half .field-footer {
+      min-height: 3em;
+    }
+
+    /* 글자수는 오른쪽 끝에 조용히 둔다. */
     .field-counter {
-      margin: 0;
+      margin: 0 0 0 auto;
       text-align: right;
+      white-space: nowrap;
       font-size: ${({ theme }) => theme.fontSize.extraSmall};
       color: ${({ theme }) => theme.color.textSecondary};
 

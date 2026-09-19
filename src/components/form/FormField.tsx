@@ -94,6 +94,19 @@ function FormField({
       </p>
     ) : null;
 
+  /**
+   * 오류 문구와 글자수를 한 줄에 둔다.
+   *
+   * 비어 있어도 자리를 잡아두기 때문에, 오류가 떴다 사라져도
+   * 아래 항목이 밀리지 않는다.
+   */
+  const renderFooter = (fieldId: string, limit?: number) => (
+    <div className="field-footer">
+      {renderError(fieldId)}
+      {renderCounter(fieldId, limit)}
+    </div>
+  );
+
   /** select 에서 "직접 입력"을 골랐을 때 나타나는 입력 */
   const renderSelfInput = () => {
     const selfId = selfFieldId(id);
@@ -108,8 +121,7 @@ function FormField({
           onChange={(event) => onValueChange(selfId, event.target.value)}
           onBlur={() => onFieldBlur(selfId)}
         />
-        {renderCounter(selfId, SELF_INPUT_MAX_LENGTH)}
-        {renderError(selfId)}
+        {renderFooter(selfId, SELF_INPUT_MAX_LENGTH)}
       </>
     );
   };
@@ -128,8 +140,7 @@ function FormField({
           onChange={(event) => onValueChange(contentId, event.target.value)}
           onBlur={() => onFieldBlur(contentId)}
         />
-        {renderCounter(contentId, field.maxLength)}
-        {renderError(contentId)}
+        {renderFooter(contentId, field.maxLength)}
       </>
     );
   };
@@ -216,7 +227,6 @@ function FormField({
           onChange={(event) => onValueChange(id, event.target.value)}
           onBlur={() => onFieldBlur(id)}
         />
-        {renderCounter(id, field.maxLength)}
         {renderSuggestions()}
       </>
     );
@@ -261,7 +271,7 @@ function FormField({
       </div>
 
       {renderControl()}
-      {renderError(id)}
+      {renderFooter(id, field.type === "custom" ? undefined : field.maxLength)}
 
       {subFields?.length ? (
         <div className="field-subfields">
