@@ -157,7 +157,6 @@ function NewCardModal() {
               <label className="shuffle-toggle" htmlFor="in-shuffle">
                 <InputCheck
                   id="in-shuffle"
-                  size="medium"
                   checked={form.inShuffle}
                   onChange={(event) => form.changeShuffle(event.target.checked)}
                 />
@@ -241,8 +240,10 @@ const StyledNewCard = styled.div`
     .shuffle-toggle {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.75rem;
       cursor: pointer;
+      /* 아래 폼 항목의 라벨과 좌우 여백을 맞춘다. */
+      padding: 0 2rem;
 
       span {
         display: flex;

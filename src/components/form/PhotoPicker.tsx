@@ -141,9 +141,13 @@ const StyledPhotoPicker = styled.div`
   }
 
   .photo-badge {
+    /*
+     * 바깥으로 튀어나오게 두면 스크롤 영역(.form-content)의 overflow 에
+     * 잘린다. 원형의 모서리 여백 안에 들어오도록 붙여둔다.
+     */
     position: absolute;
-    top: -0.2rem;
-    right: -0.2rem;
+    top: 0;
+    right: 0;
 
     display: flex;
     align-items: center;
