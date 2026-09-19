@@ -87,14 +87,14 @@ Tailwind CSS의 유연한 반응형 유틸리티 클래스를 사용하여 다�
 ### 프론트엔드 🖥️
 
 - **React** (TypeScript)
-- **Tailwind CSS**: 간단하고 효율적인 UI 디자인
+- **Styled-components**: 간단하고 효율적인 UI 디자인
 - **Axios**: API 통신 라이브러리
 
 ### 백엔드 및 인증 🛡️
 
 - **Firebase Firestore**: 사용자 및 명함 데이터 관리
 - **Firebase Authentication**: 회원 인증 및 세션 관리
-- **Cloud Functions (선택 사항)**: 서버리스 백엔드 로직 처리
+- **Cloud Functions**: 서버리스 백엔드 로직 처리
 
 ### 기타 🚀
 
@@ -124,9 +124,7 @@ Firestore 컬렉션 및 문서 기반의 구조를 활용하여 데이터를 관
     - `customFields`: 사용자 정의 필드 (최대 5개)
     - `qrCodeUrl`: 생성된 QR 코드 URL
     - `visibilitySettings`: 정보 공개 설정
-        - `isVisibleToAll`: 모든 사용자에게 공개 여부
-        - `isVisibleToMembers`: 회원에게만 공개 여부
-        - `excludeFromShuffle`: 랜덤 셔플에서 비공개 여부
+        - `isShuffle`: 랜덤 셔플에서 비공개 여부
         - `visibleToWhom`: 특정 정보를 가진 사용자에게만 공개
     - `createdAt`: 생성 날짜
     - `updatedAt`: 수정 날짜
@@ -150,7 +148,7 @@ QRU/
 │   │   ├── layout/           # 레이아웃 관련 컴포넌트
 │   │   │   ├── Header.tsx
 │   │   │   ├── Footer.tsx
-│   │   │   └── Sidebar.tsx
+│   │   │   └── Layout.tsx
 │   │   └── Logo.tsx
 │   ├── contexts/             # Context API (전역 상태 관리)
 │   │   ├── AuthContext.tsx
@@ -161,20 +159,19 @@ QRU/
 │   ├── pages/                # 라우트 페이지
 │   │   ├── Home.tsx
 │   │   ├── About.tsx
-│   │   ├── Profile.tsx
+│   │   ├── MyPage.tsx
 │   │   ├── QRShuffle.tsx
 │   │   └── EditCard.tsx
 │   ├── services/             # API 호출 로직
+│   │   ├── firebase.js
 │   │   └── api.js
-│   ├── styles/               # 전역 스타일 및 Tailwind 설정
+│   ├── styles/               # 전역 스타일 및 테마 설정
 │   │   ├── globals.css
 │   │   └── tailwind.css
 │   ├── App.tsx               # 주요 컴포넌트
 │   ├── main.tsx              # 엔트리 포인트
 │   └── vite-env.d.ts         # Vite 환경 변수 타입
 ├── .env                      # 환경 변수
-├── tailwind.config.js        # Tailwind 설정
-├── postcss.config.js         # PostCSS 설정
 ├── package.json              # 패키지 정보
 ├── vite.config.js            # Vite 설정
 └── README.md                 # 프로젝트 설명
@@ -222,18 +219,19 @@ QRU/
     
     ```
     
-2. **Tailwind CSS 설치**
+2. **Styled-components 설치**
     
     ```bash
-    npm install -D tailwindcss postcss autoprefixer
-    npx tailwindcss init
-    
+    npm install styled-components
+    npm install --save-dev @types/styled-components
     ```
+
+    - TypeScript 프로젝트에서는 추가적으로 타입 정의를 설치해야 합니다.
     
 3. **추가 유틸리티**
     - `react-icons`: 아이콘 사용.
-    - `clsx`: 조건부 클래스 관리.
     - `qrcode.react`: QR 코드 생성.
+    - `clsx`: 조건부 클래스 관리. (선택)
 
 ## 개발 계획 🤸‍♀️
 
@@ -241,13 +239,13 @@ QRU/
 
 | 기간 | 작업 내용 | 완료 |
 | --- | --- | --- |
-| 12/10 ~ 12/11 | 기획 및 화면 설계, 데이터베이스 설계 |  |
-| 12/12 ~ 12/14 | 프론트엔드 개발 (UI/UX 구성) |  |
-| 12/15 ~ 12/16 | Firebase 연동 및 인증 로직 개발 |  |
-| 12/17 | 랜덤 셔플 기능 개발 |  |
-| 12/18 ~ 12/19 | 정보 공개 설정 및 추가 기능 개발 |  |
-| 12/20 | 버그 수정 및 최종 테스트 |  |
-| 12/21 | 배포 및 사용자 피드백 |  |
+|  | 기획 및 화면 설계, 데이터베이스 설계 | ✅ |
+|  | 프론트엔드 개발 (UI/UX 구성) |  |
+|  | Firebase 연동 및 인증 로직 개발 | ✅ |
+|  | 랜덤 셔플 기능 개발 |  |
+|  | 정보 공개 설정 및 추가 기능 개발 |  |
+|  | 버그 수정 및 최종 테스트 |  |
+|  | 배포 및 사용자 피드백 |  |
 
 ### Commit Convention
 
@@ -257,6 +255,7 @@ QRU/
 | `fix` | 버그 수정 | `fix: 로그인 실패 문제 해결` |
 | `docs` | 문서 관련 변경 (README, 주석 등) | `docs: README에 실습 개요 추가` |
 | `style` | 코드 스타일 변경 (공백, 세미콜론 등) | `style: 불필요한 줄바꿈 제거` |
+| `design` | 기능 변경 없이 CSS 스타일 등의 UI/UX 변경 | `design: 전역 스타일(theme) 색상 변경` |
 | `refactor` | 코드 리팩토링 (기능 변경 없음) | `refactor: 데이터 처리 로직 간소화` |
 | `test` | 테스트 코드 추가 또는 수정 | `test: 회원가입 기능에 대한 유닛 테스트 추가` |
 | `chore` | 설정 변경 및 기타 작업 | `chore: npm 패키지 업데이트` |
@@ -264,7 +263,7 @@ QRU/
 
 ## 팀원 및 역할 👥
 
-### 김정현 🔗 [CodingKirby](https://github.com/CodingKirby)
+### 김정현 🔗 [Hyeon](https://github.com/hyeoniverse)
 
 - [Readme.md](http://readme.md/) 작성
 - 기획
