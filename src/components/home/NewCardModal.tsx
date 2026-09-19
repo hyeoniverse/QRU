@@ -14,8 +14,11 @@ import { CARD_FORM_ID } from "../../utils/formUtil";
 import { createCard } from "../../services/card";
 import { hashPassword } from "../../utils/passwordUtil";
 
+import { isFirebaseConfigured } from "../../services/firebase";
+
 import Modal from "../common/Modal";
 import Button from "../common/Button";
+import FirebaseNotice from "../common/FirebaseNotice";
 import Form from "../form/Form";
 import PasswordPopup from "./PasswordPopup";
 
@@ -129,31 +132,39 @@ function NewCardModal() {
               >
                 <FaCircleInfo />
               </Button>
-              <Button type="button" size="small" onClick={handleAddField}>
-                <FaPlus /> 항목 추가
-              </Button>
-              <Button
-                type="submit"
-                form={CARD_FORM_ID}
-                size="small"
-                disabled={isSaving}
-              >
-                <FaPen /> 명함 생성
-              </Button>
+              {isFirebaseConfigured && (
+                <>
+                  <Button type="button" size="small" onClick={handleAddField}>
+                    <FaPlus /> 항목 추가
+                  </Button>
+                  <Button
+                    type="submit"
+                    form={CARD_FORM_ID}
+                    size="small"
+                    disabled={isSaving}
+                  >
+                    <FaPen /> 명함 생성
+                  </Button>
+                </>
+              )}
             </div>
           </div>
           <div className="form-content" ref={scrollRef}>
-            <Form
-              fields={form.fields}
-              values={form.values}
-              isPublic={form.isPublic}
-              errors={form.errors}
-              onValueChange={form.changeValue}
-              onVisibilityChange={form.changeVisibility}
-              onFieldBlur={form.blurField}
-              onCustomFieldRemove={form.removeCustomField}
-              onSubmit={handleSubmit}
-            />
+            {isFirebaseConfigured ? (
+              <Form
+                fields={form.fields}
+                values={form.values}
+                isPublic={form.isPublic}
+                errors={form.errors}
+                onValueChange={form.changeValue}
+                onVisibilityChange={form.changeVisibility}
+                onFieldBlur={form.blurField}
+                onCustomFieldRemove={form.removeCustomField}
+                onSubmit={handleSubmit}
+              />
+            ) : (
+              <FirebaseNotice description="명함을 만들고 저장하려면 Firebase 연결이 필요합니다." />
+            )}
           </div>
         </StyledNewCard>
       </Modal>

@@ -1,5 +1,5 @@
 import { collection, doc, getDoc, writeBatch } from "firebase/firestore";
-import { db } from "./firebase";
+import { requireDb } from "./firebase";
 import {
   CARD_COLLECTION,
   CardDocument,
@@ -20,6 +20,7 @@ import { createSerialNumber, toCardEntries } from "../utils/cardUtil";
 export const createCard = async (
   input: NewCard
 ): Promise<{ id: string; serialNumber: string }> => {
+  const db = requireDb();
   const collectionName = input.uid
     ? CARD_COLLECTION.member
     : CARD_COLLECTION.guest;
@@ -57,6 +58,8 @@ export const createCard = async (
  * 빠진 값은 빈 값으로 채워 화면이 깨지지 않게 한다.
  */
 export const getCard = async (id: string): Promise<CardDocument | null> => {
+  const db = requireDb();
+
   // 회원/비회원 컬렉션이 분리되어 있어 양쪽을 확인한다. (#32)
   for (const collectionName of Object.values(CARD_COLLECTION)) {
     const snapshot = await getDoc(doc(db, collectionName, id));

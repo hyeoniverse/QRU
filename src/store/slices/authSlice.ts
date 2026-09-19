@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { auth, provider } from "../../services/firebase";
+import { auth, provider, requireAuth } from "../../services/firebase";
 import {
   browserLocalPersistence,
   setPersistence,
@@ -27,8 +27,10 @@ const initialState: AuthState = {
 
 // Async thunk for login
 export const login = createAsyncThunk("auth/login", async () => {
-  await setPersistence(auth, browserLocalPersistence);
-  const result = await signInWithPopup(auth, provider);
+  const instance = requireAuth();
+
+  await setPersistence(instance, browserLocalPersistence);
+  const result = await signInWithPopup(instance, provider);
 
   // 필요한 데이터만 반환
   const { uid, displayName, email, photoURL } = result.user;
@@ -37,7 +39,7 @@ export const login = createAsyncThunk("auth/login", async () => {
 
 // Async thunk for logout
 export const logout = createAsyncThunk("auth/logout", async () => {
-  await signOut(auth);
+  await signOut(requireAuth());
 });
 
 // 비동기 Thunk 정의
@@ -46,9 +48,14 @@ export const checkUserState = createAsyncThunk<
   void, // 전달받는 인수 타입
   { rejectValue: string } // reject 시 반환 타입
 >("auth/checkUserState", async (_, { rejectWithValue }) => {
+  // 설정이 없으면 로그인 상태를 확인할 수 없다. 비로그인으로 둔다.
+  if (!auth) return null;
+
+  const instance = auth;
+
   return new Promise<UserState | null>((resolve, reject) => {
     const unsubscribe = onAuthStateChanged(
-      auth,
+      instance,
       (user) => {
         if (user) {
           const { uid, displayName, email, photoURL } = user;

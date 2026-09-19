@@ -4,8 +4,10 @@ import styled from "styled-components";
 import { FaCircleInfo } from "react-icons/fa6";
 
 import { getCard } from "../services/card";
+import { isFirebaseConfigured } from "../services/firebase";
 import CardView from "../components/card/CardView";
 import CardShare from "../components/card/CardShare";
+import FirebaseNotice from "../components/common/FirebaseNotice";
 import Loading from "../components/common/Loading";
 import Title from "../components/common/Title";
 
@@ -23,9 +25,17 @@ function Card() {
     isLoading,
     isError,
   } = useQuery(["card", id], () => getCard(id as string), {
-    enabled: Boolean(id),
+    enabled: Boolean(id) && isFirebaseConfigured,
     retry: false,
   });
+
+  if (!isFirebaseConfigured) {
+    return (
+      <StyledCardPage>
+        <FirebaseNotice description="명함을 불러오려면 Firebase 연결이 필요합니다." />
+      </StyledCardPage>
+    );
+  }
 
   if (isLoading) {
     return (
