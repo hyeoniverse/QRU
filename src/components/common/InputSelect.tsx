@@ -126,7 +126,8 @@ const StyledInputSelect = styled.div<StyleProps>`
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 0.5rem 1rem;
+    height: ${({ theme }) => theme.control.height};
+    padding: 0 ${({ theme }) => theme.control.paddingX};
     border: none;
     box-shadow: ${({ theme }) => theme.shadow.light};
     border-radius: ${({ theme }) => theme.borderRadius.default};
@@ -137,7 +138,6 @@ const StyledInputSelect = styled.div<StyleProps>`
     text-align: left;
     cursor: pointer;
     line-height: 1.8;
-    height: 2.5rem;
     z-index: 1000;
 
     &:disabled {

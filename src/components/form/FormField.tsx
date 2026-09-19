@@ -6,6 +6,7 @@ import {
   IFormField,
 } from "../../types/formType";
 import {
+  SELF_INPUT_MAX_LENGTH,
   SELF_VALUE,
   htmlInputType,
   selfFieldId,
@@ -33,6 +34,9 @@ interface Props extends FieldHandlers {
   onRemove?: (id: string) => void;
 }
 
+/** 한도의 이 비율을 넘으면 글자수를 경고색으로 보여준다. */
+const COUNTER_WARN_RATIO = 0.8;
+
 function FormField({
   field,
   values,
@@ -53,10 +57,35 @@ function FormField({
     subFields,
     readOnly,
     publishable = true,
+    suggestions,
+    span = "full",
   } = field;
 
   const value = values[id] ?? "";
   const isChoice = type === "select" || type === "custom";
+
+  /**
+   * 남은 글자수를 보여준다. 넘치면 몇 자를 넘겼는지 알려준다.
+   *
+   * maxLength 속성으로 막지 않는 이유는, 붙여넣기 한 글이 말없이
+   * 잘리는 것보다 넘쳤다고 알려주는 편이 낫기 때문이다.
+   */
+  const renderCounter = (fieldId: string, limit?: number) => {
+    if (!limit) return null;
+
+    const length = (values[fieldId] ?? "").trim().length;
+    const over = length - limit;
+
+    // 한도에 가까워지면 미리 알려주고, 넘기면 몇 자를 넘겼는지 말해준다.
+    const state =
+      over > 0 ? "over" : length >= limit * COUNTER_WARN_RATIO ? "near" : "";
+
+    return (
+      <p className={`field-counter ${state}`}>
+        {over > 0 ? `${length} / ${limit} · ${over}자 초과` : `${length} / ${limit}`}
+      </p>
+    );
+  };
 
   const renderError = (fieldId: string) =>
     errors[fieldId] ? (
@@ -64,6 +93,19 @@ function FormField({
         {errors[fieldId]}
       </p>
     ) : null;
+
+  /**
+   * 오류 문구와 글자수를 한 줄에 둔다.
+   *
+   * 비어 있어도 자리를 잡아두기 때문에, 오류가 떴다 사라져도
+   * 아래 항목이 밀리지 않는다.
+   */
+  const renderFooter = (fieldId: string, limit?: number) => (
+    <div className="field-footer">
+      {renderError(fieldId)}
+      {renderCounter(fieldId, limit)}
+    </div>
+  );
 
   /** select 에서 "직접 입력"을 골랐을 때 나타나는 입력 */
   const renderSelfInput = () => {
@@ -79,7 +121,7 @@ function FormField({
           onChange={(event) => onValueChange(selfId, event.target.value)}
           onBlur={() => onFieldBlur(selfId)}
         />
-        {renderError(selfId)}
+        {renderFooter(selfId, SELF_INPUT_MAX_LENGTH)}
       </>
     );
   };
@@ -98,10 +140,49 @@ function FormField({
           onChange={(event) => onValueChange(contentId, event.target.value)}
           onBlur={() => onFieldBlur(contentId)}
         />
-        {renderError(contentId)}
+        {renderFooter(contentId, field.maxLength)}
       </>
     );
   };
+
+  /**
+   * 추천 값을 눌러 넣고 뺀다.
+   * 쉼표로 구분한 목록으로 다루므로 이미 들어 있으면 지운다.
+   */
+  const pickedSuggestions = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const toggleSuggestion = (keyword: string) => {
+    const next = pickedSuggestions.includes(keyword)
+      ? pickedSuggestions.filter((item) => item !== keyword)
+      : [...pickedSuggestions, keyword];
+
+    onValueChange(id, next.join(", "));
+  };
+
+  const renderSuggestions = () =>
+    suggestions?.length ? (
+      <ul className="field-suggestions">
+        {suggestions.map((keyword) => {
+          const picked = pickedSuggestions.includes(keyword);
+
+          return (
+            <li key={keyword}>
+              <button
+                type="button"
+                className={picked ? "suggestion picked" : "suggestion"}
+                aria-pressed={picked}
+                onClick={() => toggleSuggestion(keyword)}
+              >
+                {keyword}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    ) : null;
 
   const renderControl = () => {
     if (isChoice) {
@@ -135,21 +216,24 @@ function FormField({
     }
 
     return (
-      <InputText
-        id={id}
-        name={id}
-        type={htmlInputType(type)}
-        placeholder={placeholder}
-        value={value}
-        readOnly={readOnly}
-        onChange={(event) => onValueChange(id, event.target.value)}
-        onBlur={() => onFieldBlur(id)}
-      />
+      <>
+        <InputText
+          id={id}
+          name={id}
+          type={htmlInputType(type)}
+          placeholder={placeholder}
+          value={value}
+          readOnly={readOnly}
+          onChange={(event) => onValueChange(id, event.target.value)}
+          onBlur={() => onFieldBlur(id)}
+        />
+        {renderSuggestions()}
+      </>
     );
   };
 
   return (
-    <div className={`form-group ${type === "custom" ? "custom" : ""}`}>
+    <div className={`form-group span-${span} ${type === "custom" ? "custom" : ""}`}>
       <div className="form-field">
         <label className="field-label" htmlFor={id}>
           {label}
@@ -161,13 +245,15 @@ function FormField({
         </label>
 
         {publishable && (
-          <InputCheck
-            id={`${id}-public`}
-            name={id}
-            label="공개"
-            checked={isPublic[id] ?? false}
-            onChange={(event) => onVisibilityChange(id, event.target.checked)}
-          />
+          <label className="field-visibility" htmlFor={`${id}-public`}>
+            <InputCheck
+              id={`${id}-public`}
+              name={id}
+              checked={isPublic[id] ?? false}
+              onChange={(event) => onVisibilityChange(id, event.target.checked)}
+            />
+            <span>공개</span>
+          </label>
         )}
 
         {onRemove && (
@@ -185,20 +271,24 @@ function FormField({
       </div>
 
       {renderControl()}
-      {renderError(id)}
+      {renderFooter(id, field.type === "custom" ? undefined : field.maxLength)}
 
-      {subFields?.map((subField) => (
-        <FormField
-          key={subField.id}
-          field={{ ...subField, id: subFieldId(id, subField.id) }}
-          values={values}
-          isPublic={isPublic}
-          errors={errors}
-          onValueChange={onValueChange}
-          onVisibilityChange={onVisibilityChange}
-          onFieldBlur={onFieldBlur}
-        />
-      ))}
+      {subFields?.length ? (
+        <div className="field-subfields">
+          {subFields.map((subField) => (
+            <FormField
+              key={subField.id}
+              field={{ ...subField, id: subFieldId(id, subField.id) }}
+              values={values}
+              isPublic={isPublic}
+              errors={errors}
+              onValueChange={onValueChange}
+              onVisibilityChange={onVisibilityChange}
+              onFieldBlur={onFieldBlur}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

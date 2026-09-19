@@ -1,5 +1,11 @@
 import { FormErrors, FormValues, FormVisibility, IFormField } from "../types/formType";
-import { SELF_VALUE, selfFieldId, subFieldId, valueFieldId } from "./formUtil";
+import {
+  SELF_INPUT_MAX_LENGTH,
+  SELF_VALUE,
+  selfFieldId,
+  subFieldId,
+  valueFieldId,
+} from "./formUtil";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -70,7 +76,7 @@ const flattenFields = (
         required: true,
         publishable: false,
         minLength: 1,
-        maxLength: 20,
+        maxLength: SELF_INPUT_MAX_LENGTH,
       });
     }
 

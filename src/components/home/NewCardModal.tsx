@@ -227,7 +227,7 @@ const StyledNewCard = styled.div`
     justify-content: center;
     align-items: flex-start;
     gap: 1rem;
-    padding: 1.5rem 1rem 0.5rem 1rem;
+    padding: 1.5rem 2rem 0.5rem;
     overflow: visible;
     z-index: 10;
 
@@ -242,8 +242,7 @@ const StyledNewCard = styled.div`
       align-items: center;
       gap: 0.75rem;
       cursor: pointer;
-      /* 아래 폼 항목의 라벨과 좌우 여백을 맞춘다. */
-      padding: 0 2rem;
+      /* 좌우 여백은 상위(.form-title)가 이미 갖고 있다. */
 
       span {
         display: flex;

@@ -31,13 +31,13 @@ const StyledInputText = styled.div`
   input {
     display: flex;
     width: 100%;
-    height: fit-content;
+    /* 셀렉트 / 날짜 입력과 높이를 맞춘다. */
+    height: ${({ theme }) => theme.control.height};
     border: none;
     outline: none;
     box-shadow: ${({ theme }) => theme.shadow.light};
     overflow: visible;
-    padding: 0.6rem 1.2rem;
-    line-height: 1.8;
+    padding: 0 ${({ theme }) => theme.control.paddingX};
 
     color: ${({ theme }) => theme.color.text};
     background: ${({ theme }) => theme.color.blur};

@@ -98,7 +98,6 @@ const BADGE_SIZE = "1.75rem";
 const StyledPhotoPicker = styled.div`
   position: relative;
   width: 5rem;
-  margin-left: 1rem;
   flex-shrink: 0;
 
   .photo-button {

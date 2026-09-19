@@ -55,8 +55,9 @@ const StyledInputDate = styled.div`
 
   .custom-datepicker {
     width: 100%;
+    height: ${({ theme }) => theme.control.height};
     border: none;
-    padding: 0.6rem 1.2rem;
+    padding: 0 ${({ theme }) => theme.control.paddingX};
     border-radius: ${({ theme }) => theme.borderRadius.default};
     background-color: ${({ theme }) => theme.color.blur};
     font-size: ${({ theme }) => theme.fontSize.small};
