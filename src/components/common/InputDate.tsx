@@ -1,42 +1,46 @@
-import { useState } from "react";
 import DatePicker from "react-datepicker";
 import styled from "styled-components";
 import "react-datepicker/dist/react-datepicker.css";
+import { parseISODate, toISODate } from "../../utils/dateUtil";
 
 interface Props {
+  id?: string;
   label?: string;
-  onChange: (date: Date | null) => void;
+  /** "yyyy-MM-dd" 형식의 값. 빈 문자열이면 선택되지 않은 상태 */
+  value: string;
+  /** 선택이 해제되면 빈 문자열이 전달된다. */
+  onChange: (value: string) => void;
   onBlur?: () => void;
+  placeholder?: string;
 }
 
-const InputDate = ({ label, onChange, onBlur }: Props) => {
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const handleDateChange = (date: Date | null) => {
-    setSelectedDate(date);
-    onChange(date);
-  };
-
-  return (
-    <StyledInputDate>
-      {label && <label htmlFor="custom-date-picker">{label}</label>}
-      <DatePicker
-        id="custom-date-picker"
-        selected={selectedDate}
-        onChange={handleDateChange}
-        showYearDropdown
-        yearDropdownItemNumber={130}
-        scrollableYearDropdown
-        dateFormat="yyyy-MM-dd"
-        placeholderText="날짜를 선택하세요"
-        className="custom-datepicker"
-        closeOnScroll={true}
-        shouldCloseOnSelect={true}
-        maxDate={new Date()}
-        onBlur={onBlur}
-      />
-    </StyledInputDate>
-  );
-};
+const InputDate = ({
+  id,
+  label,
+  value,
+  onChange,
+  onBlur,
+  placeholder = "날짜를 선택하세요",
+}: Props) => (
+  <StyledInputDate>
+    {label && <label htmlFor={id}>{label}</label>}
+    <DatePicker
+      id={id}
+      selected={parseISODate(value)}
+      onChange={(date) => onChange(date ? toISODate(date) : "")}
+      showYearDropdown
+      yearDropdownItemNumber={130}
+      scrollableYearDropdown
+      dateFormat="yyyy-MM-dd"
+      placeholderText={placeholder}
+      className="custom-datepicker"
+      closeOnScroll
+      shouldCloseOnSelect
+      maxDate={new Date()}
+      onBlur={onBlur}
+    />
+  </StyledInputDate>
+);
 
 const StyledInputDate = styled.div`
   display: flex;
@@ -47,7 +51,6 @@ const StyledInputDate = styled.div`
     margin-left: 0.5rem;
     font-size: ${({ theme }) => theme.fontSize.extraSmall};
     color: ${({ theme }) => theme.color.text};
-    pointer-events: none;
   }
 
   .custom-datepicker {
@@ -60,6 +63,10 @@ const StyledInputDate = styled.div`
     color: ${({ theme }) => theme.color.text};
     box-shadow: ${({ theme }) => theme.shadow.light};
     outline: none;
+
+    &::placeholder {
+      color: ${({ theme }) => theme.color.textSecondary};
+    }
 
     &:hover {
       border-color: ${({ theme }) => theme.color.primary};
@@ -86,7 +93,7 @@ const StyledInputDate = styled.div`
   .react-datepicker__day--keyboard-selected {
     background-color: ${({ theme }) => theme.color.secondary};
     color: ${({ theme }) => theme.color.onSecondary};
-    border-radius: ${({ theme }) => theme.borderRadius.small};
+    border-radius: ${({ theme }) => theme.borderRadius.default};
   }
 
   .react-datepicker__day:hover {
@@ -98,7 +105,7 @@ const StyledInputDate = styled.div`
   .react-datepicker__month-dropdown {
     background-color: ${({ theme }) => theme.color.surface};
     color: ${({ theme }) => theme.color.text};
-    border: 1px solid ${({ theme }) => theme.color.border};
+    border: 1px solid ${({ theme }) => theme.color.secondary};
   }
 
   .react-datepicker__year-option:hover,

@@ -1,8 +1,9 @@
 import styled from "styled-components";
 import { FaSpinner } from "react-icons/fa";
+import { FontSize } from "../../styles/theme";
 
 interface Props {
-  size?: string;
+  size?: FontSize;
 }
 
 function Loading({ size }: Props) {
@@ -13,7 +14,7 @@ function Loading({ size }: Props) {
   );
 }
 
-const StyledLoading = styled.div<{ $size?: string }>`
+const StyledLoading = styled.div<{ $size?: FontSize }>`
   padding: ${({ $size }) => ($size ? "0" : "2rem")} 0;
   text-align: center;
 

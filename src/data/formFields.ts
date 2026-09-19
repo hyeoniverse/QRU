@@ -1,4 +1,18 @@
-import { IFormField } from "../types/formType";
+import { IFormField, IOption } from "../types/formType";
+import { SELF_VALUE } from "../utils/formUtil";
+
+/** 사용자가 직접 추가할 수 있는 항목 수 */
+export const MAX_CUSTOM_FIELDS = 5;
+
+/** 추가 항목의 제목 선택지 */
+export const CUSTOM_FIELD_OPTIONS: IOption[] = [
+  { label: "소속/회사", value: "company" },
+  { label: "직무/직책", value: "position" },
+  { label: "연락처", value: "contact" },
+  { label: "웹사이트", value: "website" },
+  { label: "한마디", value: "message" },
+  { label: "직접 입력", value: SELF_VALUE },
+];
 
 export const FORM_FIELDS: IFormField[] = [
   {
@@ -31,7 +45,9 @@ export const FORM_FIELDS: IFormField[] = [
     ],
   },
   {
+    // 생년월일 자체는 공개하지 않고, 생일/나이만 골라서 공개한다.
     required: true,
+    publishable: false,
     id: "birth",
     label: "생년월일",
     type: "date",
@@ -40,15 +56,15 @@ export const FORM_FIELDS: IFormField[] = [
         id: "birthday",
         label: "생일",
         type: "text",
-        placeholder: "생일을 입력하세요.",
-        disabled: [false, true],
+        placeholder: "생년월일을 선택하면 자동으로 입력됩니다.",
+        readOnly: true,
       },
       {
         id: "age",
         label: "나이",
         type: "number",
-        placeholder: "나이를 입력하세요.",
-        disabled: [false, true],
+        placeholder: "생년월일을 선택하면 자동으로 입력됩니다.",
+        readOnly: true,
       },
     ],
   },
@@ -61,6 +77,8 @@ export const FORM_FIELDS: IFormField[] = [
     maxLength: 50,
   },
   {
+    // SNS 는 종류와 아이디가 한 쌍이므로 아이디 쪽에서만 공개 여부를 고른다.
+    publishable: false,
     id: "sns",
     label: "SNS",
     type: "select",
@@ -69,7 +87,7 @@ export const FORM_FIELDS: IFormField[] = [
       { label: "트위터", value: "twitter" },
       { label: "페이스북", value: "facebook" },
       { label: "카카오톡", value: "kakao" },
-      { label: "직접 입력", value: "self" },
+      { label: "직접 입력", value: SELF_VALUE },
     ],
     subFields: [
       {
@@ -129,4 +147,21 @@ export const FORM_FIELDS: IFormField[] = [
     minLength: 1,
     maxLength: 120,
   },
+];
+
+/** 사용자가 추가한 항목을 폼 필드로 변환 */
+export const createCustomField = (id: string): IFormField => ({
+  id,
+  label: "추가 정보",
+  type: "custom",
+  required: true,
+  options: CUSTOM_FIELD_OPTIONS,
+  minLength: 1,
+  maxLength: 200,
+});
+
+/** 기본 항목 + 추가 항목 */
+export const buildCardFields = (customFieldIds: string[]): IFormField[] => [
+  ...FORM_FIELDS,
+  ...customFieldIds.map(createCustomField),
 ];

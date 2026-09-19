@@ -1,240 +1,168 @@
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "../../store/index";
-import {
-  addCustomField,
-  removeCustomField,
-  resetForm,
-} from "../../store/slices/formSlice";
-import {
-  setError,
-  clearAllErrors,
-  clearError,
-} from "../../store/slices/errorSlice";
-import { FieldType } from "../../types/formType";
-import { FORM_FIELDS } from "../../data/formFields";
-import { saveToFirestore } from "../../utils/firestoreUtil";
-import { closeModal } from "../../store/slices/modalSlice";
-
 import styled from "styled-components";
-import Form from "../../components/common/Form";
-import Button from "../../components/common/Button";
-import { FaCircleInfo, FaPen, FaPlus, FaX } from "react-icons/fa6";
-import Modal from "../common/Modal";
-import InputText from "../common/InputText";
-import { FaCheck } from "react-icons/fa";
-import { addToast } from "../../store/slices/toastSlice";
+import { FaCircleInfo, FaPen, FaPlus } from "react-icons/fa6";
+
+import { RootState } from "../../store";
+import { closeModal } from "../../store/slices/modalSlice";
+import { ToastType, addToast } from "../../store/slices/toastSlice";
+import { MAX_CUSTOM_FIELDS } from "../../data/formFields";
+import { useCardForm } from "../../hooks/useCardForm";
+import { CARD_COLLECTION, CardPayload } from "../../types/cardType";
+import { CARD_FORM_ID } from "../../utils/formUtil";
+import { saveToFirestore } from "../../utils/firestoreUtil";
 import { encryptPassword } from "../../utils/passwordUtil";
+
+import Modal from "../common/Modal";
+import Button from "../common/Button";
+import Form from "../form/Form";
+import PasswordPopup from "./PasswordPopup";
+
+const GUIDE = `1. "항목 추가 버튼"으로 추가적인 정보를 입력할 수 있습니다.
+* 최대 ${MAX_CUSTOM_FIELDS}개까지 추가 가능합니다.
+2. "명함 생성 버튼"을 눌러 명함을 생성합니다.
+* 필수 입력 항목을 모두 입력해야 합니다.
+3. 각 항목에 대한 공개 여부를 선택할 수 있습니다.
+* 공개로 설정하신 항목의 내용은 비울 수 없습니다.
+4. 비회원의 경우 1개월 동안만 명함이 유지됩니다.
+5. 비회원의 경우 생성한 명함을 수정 및 삭제하기 위해서는 생성 시 고지된 일련번호와 입력하신 비밀번호가 필요합니다.
+* 회원의 경우 마이 페이지에서 명함을 확인 및 관리할 수 있습니다.`;
 
 function NewCardModal() {
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
-  const errors = useSelector((state: RootState) => state.error.errors);
+  const isModalOpen = useSelector((state: RootState) => state.modal.isModalOpen);
 
-  const isModalOpen = useSelector(
-    (state: RootState) => state.modal.isModalOpen
-  );
-  const { customFields } = useSelector((state: RootState) => state.form);
-
-  const [isPasswordPopupOpen, setIsPasswordPopupOpen] = useState(false);
-  const [password, setPassword] = useState("");
-  const [pendingPayload, setPendingPayload] = useState<Payload | null>(null);
+  const form = useCardForm();
+  // 비회원은 비밀번호를 받은 뒤에 저장하므로 제출할 내용을 잠시 들고 있는다.
+  const [pendingPayload, setPendingPayload] = useState<CardPayload | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const { customFieldCount } = form;
 
-  const handleCloseModal = () => {
-    closePasswordPopup();
-    dispatch(resetForm());
-    dispatch(clearAllErrors());
+  const notify = (type: ToastType, message: string) =>
+    dispatch(addToast({ type, message }));
+
+  // 항목을 추가하면 새로 생긴 입력이 보이도록 끝까지 스크롤한다.
+  useEffect(() => {
+    if (customFieldCount > 0 && scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [customFieldCount]);
+
+  const handleClose = () => {
+    setPendingPayload(null);
+    form.reset();
     dispatch(closeModal());
   };
 
-  interface Payload {
-    values: Record<string, string>;
-    isPublic: Record<string, boolean>;
-    createdAt: string;
-    uid: string | null;
-    password?: string;
-    [key: string]: unknown;
-  }
-
-  const openPasswordPopup = (payload: Payload) => {
-    setPendingPayload(payload);
-    setIsPasswordPopupOpen(true);
-  };
-
-  const closePasswordPopup = () => {
-    setPassword("");
-    setIsPasswordPopupOpen(false);
-    setPendingPayload(null);
-  };
-
-  useEffect(() => {
-    if (customFields.length > 0 && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [customFields]);
-
   const handleAddField = () => {
-    if (customFields.length >= 5) {
-      dispatch(
-        setError({
-          fieldId: "customFields",
-          message: "추가 항목은 최대 5개까지 입력할 수 있습니다.",
-        })
-      );
+    if (!form.canAddCustomField) {
+      notify("error", `추가 항목은 최대 ${MAX_CUSTOM_FIELDS}개까지 입력할 수 있습니다.`);
       return;
     }
 
-    dispatch(addCustomField());
+    form.addCustomField();
   };
 
-  const handleRemoveField = (id: string) => {
-    dispatch(removeCustomField(id));
-    dispatch(clearError("customFields"));
+  const saveCard = async (payload: CardPayload) => {
+    setIsSaving(true);
+
+    try {
+      await saveToFirestore(
+        payload.uid ? CARD_COLLECTION.member : CARD_COLLECTION.guest,
+        payload
+      );
+      notify("success", "명함이 성공적으로 생성되었습니다.");
+      handleClose();
+    } catch (error) {
+      console.error("Error saving card:", error);
+      notify("error", "명함 생성 중 오류가 발생했습니다.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleSubmit = async (data: {
-    values: Record<string, string>;
-    isPublic: Record<string, boolean>;
-  }) => {
-    const collectionName = user ? "cards" : "guestCards";
-    const payload = {
-      ...data,
+  const handleSubmit = () => {
+    const [firstError] = Object.values(form.validate());
+
+    if (firstError) {
+      notify("error", firstError);
+      return;
+    }
+
+    const payload: CardPayload = {
+      ...form.getSubmitData(),
       createdAt: new Date().toISOString(),
-      uid: user?.uid || null,
+      uid: user?.uid ?? null,
     };
 
     if (!user) {
-      openPasswordPopup(payload);
+      setPendingPayload(payload);
       return;
     }
 
-    await saveCard(payload, collectionName);
+    void saveCard(payload);
   };
 
-  const saveCard = async (payload: Payload, collectionName: string) => {
-    try {
-      const docId = await saveToFirestore(collectionName, payload);
-      console.log("Document saved with ID:", docId);
-      dispatch(
-        addToast({
-          type: "success",
-          message: "명함이 성공적으로 생성되었습니다.",
-        })
-      );
-      handleCloseModal();
-    } catch (error) {
-      console.error("Error saving data:", error);
-      dispatch(
-        addToast({
-          type: "error",
-          message: "명함 생성 중 오류가 발생했습니다.",
-        })
-      );
-    }
-  };
+  const handlePasswordSubmit = (password: string) => {
+    if (!pendingPayload) return;
 
-  const latestError = errors[errors.length - 1];
-  useEffect(() => {
-    if (latestError) {
-      dispatch(
-        addToast({
-          type: "error",
-          message: latestError.message,
-        })
-      );
-    }
-  }, [latestError, dispatch]);
-
-  const validatePassword = async () => {
-    if (password.length < 6) {
-      dispatch(
-        addToast({
-          type: "error",
-          message: "비밀번호는 6자 이상 입력해주세요.",
-        })
-      );
-      return false;
-    }
-    return true;
-  };
-
-  const handlePasswordSubmit = async () => {
-    const isPasswordValid = await validatePassword();
-    if (isPasswordValid && pendingPayload) {
-      pendingPayload.password = await encryptPassword(password);
-      await saveCard(pendingPayload, "guestCards");
-    }
+    void saveCard({ ...pendingPayload, password: encryptPassword(password) });
   };
 
   return (
     <>
-      <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
+      <Modal isOpen={isModalOpen} onClose={handleClose}>
         <StyledNewCard>
           <div className="form-title">
             <div className="form-title-buttons">
               <Button
+                type="button"
                 size="small"
                 scheme="secondary"
                 boxShadow="none"
-                tooltip={`1. "항목 추가 버튼"으로 추가적인 정보를 입력할 수 있습니다.\n* 최대 5개까지 추가 가능합니다.\n2. "명함 생성 버튼"을 눌러 명함을 생성합니다.\n* 필수 입력 항목을 모두 입력해야 합니다.\n3. 각 항목에 대한 공개 여부를 선택할 수 있습니다.\n* 공개로 설정하신 항목의 내용은 비울 수 없습니다.\n4. 비회원의 경우 1개월 동안만 명함이 유지됩니다.\n5. 비회원의 경우 생성한 명함을 수정 및 삭제하기 위해서는 생성 시 고지된 일련번호와 입력하신 비밀번호가 필요합니다.\n* 회원의 경우 마이 페이지에서 명함을 확인 및 관리할 수 있습니다.`}
+                aria-label="명함 생성 안내"
+                tooltip={GUIDE}
               >
                 <FaCircleInfo />
               </Button>
-              <Button size="small" onClick={handleAddField}>
+              <Button type="button" size="small" onClick={handleAddField}>
                 <FaPlus /> 항목 추가
               </Button>
-              <Button size="small" type="submit" form="form">
+              <Button
+                type="submit"
+                form={CARD_FORM_ID}
+                size="small"
+                disabled={isSaving}
+              >
                 <FaPen /> 명함 생성
               </Button>
             </div>
           </div>
           <div className="form-content" ref={scrollRef}>
             <Form
-              key="content"
-              fields={[
-                ...FORM_FIELDS,
-                ...customFields.map((field) => ({
-                  ...field,
-                  required: true,
-                  label: "추가 정보",
-                  type: "custom" as FieldType,
-                  minLength: 1,
-                  maxLength: 200,
-                })),
-              ]}
+              fields={form.fields}
+              values={form.values}
+              isPublic={form.isPublic}
+              errors={form.errors}
+              onValueChange={form.changeValue}
+              onVisibilityChange={form.changeVisibility}
+              onFieldBlur={form.blurField}
+              onCustomFieldRemove={form.removeCustomField}
               onSubmit={handleSubmit}
-              onCustomFieldRemove={(id) => handleRemoveField(id)}
             />
           </div>
         </StyledNewCard>
       </Modal>
-      {isPasswordPopupOpen && (
-        <PasswordPopup>
-          <div className="popup-content">
-            <label htmlFor="password">비밀번호 (6자 이상)</label>
-            <InputText
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="비밀번호를 입력하세요"
-            />
-            <div className="popup-buttons">
-              <Button
-                size="small"
-                scheme="primary"
-                onClick={handlePasswordSubmit}
-              >
-                <FaCheck /> 확인
-              </Button>
-              <Button size="small" onClick={closePasswordPopup}>
-                <FaX /> 취소
-              </Button>
-            </div>
-          </div>
-        </PasswordPopup>
+
+      {pendingPayload && (
+        <PasswordPopup
+          isSubmitting={isSaving}
+          onSubmit={handlePasswordSubmit}
+          onCancel={() => setPendingPayload(null)}
+        />
       )}
     </>
   );
@@ -275,35 +203,6 @@ const StyledNewCard = styled.div`
     border-radius: ${({ theme }) => theme.borderRadius.default};
     scroll-behavior: smooth;
     backdrop-filter: blur(8px);
-  }
-`;
-
-const PasswordPopup = styled.div`
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: ${({ theme }) => theme.color.surface};
-  padding: 2rem;
-  border-radius: ${({ theme }) => theme.borderRadius.default};
-  box-shadow: ${({ theme }) => theme.shadow.default};
-  z-index: 9999;
-
-  .popup-content {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-
-    label {
-      font-size: 1rem;
-      font-weight: bold;
-    }
-
-    .popup-buttons {
-      display: flex;
-      justify-content: space-between;
-      gap: 0.5rem;
-    }
   }
 `;
 
