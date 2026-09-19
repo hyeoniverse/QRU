@@ -40,8 +40,19 @@ export type ButtonScheme =
 export type Shadow = "default" | "strong" | "light" | "hover" | "none";
 export type LayoutWidth = "large" | "medium" | "small";
 export type MediaQuery = "mobile" | "tablet" | "desktop";
+/** 입력 컨트롤의 공통 치수. 항목마다 높이가 달라지지 않게 한곳에서 정한다. */
+interface Control {
+  /** 텍스트 입력 / 셀렉트 / 날짜 입력의 높이 */
+  height: string;
+  /** 위 컨트롤의 좌우 안쪽 여백 */
+  paddingX: string;
+  /** 체크박스 한 변 */
+  checkbox: string;
+}
+
 export interface Theme {
   name: ThemeName;
+  control: Control;
   color: Record<ColorKey, string>;
   fontSize: Record<FontSize, string>;
   borderRadius: Record<BorderRadius, string>;
@@ -79,6 +90,11 @@ export interface Theme {
 
 export const lightTheme: Theme = {
   name: "dark",
+  control: {
+    height: "2.75rem",
+    paddingX: "1.2rem",
+    checkbox: "1.75rem",
+  },
   color: {
     primary: "#4db6ac",
     primaryVariant: "#00867d",

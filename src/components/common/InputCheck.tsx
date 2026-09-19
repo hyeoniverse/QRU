@@ -56,9 +56,9 @@ const StyledInputCheck = styled.div<StyleProps>`
     justify-content: center;
 
     height: ${({ $size, theme }) =>
-      $size ? theme.fontSize[$size] : theme.fontSize.large};
+      $size ? theme.fontSize[$size] : theme.control.checkbox};
     width: ${({ $size, theme }) =>
-      $size ? theme.fontSize[$size] : theme.fontSize.large};
+      $size ? theme.fontSize[$size] : theme.control.checkbox};
     aspect-ratio: 1;
 
     cursor: pointer;

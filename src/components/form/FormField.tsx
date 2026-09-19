@@ -6,6 +6,7 @@ import {
   IFormField,
 } from "../../types/formType";
 import {
+  SELF_INPUT_MAX_LENGTH,
   SELF_VALUE,
   htmlInputType,
   selfFieldId,
@@ -60,6 +61,25 @@ function FormField({
   const value = values[id] ?? "";
   const isChoice = type === "select" || type === "custom";
 
+  /**
+   * 남은 글자수를 보여준다. 넘치면 몇 자를 넘겼는지 알려준다.
+   *
+   * maxLength 속성으로 막지 않는 이유는, 붙여넣기 한 글이 말없이
+   * 잘리는 것보다 넘쳤다고 알려주는 편이 낫기 때문이다.
+   */
+  const renderCounter = (fieldId: string, limit?: number) => {
+    if (!limit) return null;
+
+    const length = (values[fieldId] ?? "").trim().length;
+    const over = length - limit;
+
+    return (
+      <p className={over > 0 ? "field-counter over" : "field-counter"}>
+        {over > 0 ? `${length} / ${limit} · ${over}자 초과` : `${length} / ${limit}`}
+      </p>
+    );
+  };
+
   const renderError = (fieldId: string) =>
     errors[fieldId] ? (
       <p className="error-message" role="alert">
@@ -81,6 +101,7 @@ function FormField({
           onChange={(event) => onValueChange(selfId, event.target.value)}
           onBlur={() => onFieldBlur(selfId)}
         />
+        {renderCounter(selfId, SELF_INPUT_MAX_LENGTH)}
         {renderError(selfId)}
       </>
     );
@@ -100,6 +121,7 @@ function FormField({
           onChange={(event) => onValueChange(contentId, event.target.value)}
           onBlur={() => onFieldBlur(contentId)}
         />
+        {renderCounter(contentId, field.maxLength)}
         {renderError(contentId)}
       </>
     );
@@ -187,6 +209,7 @@ function FormField({
           onChange={(event) => onValueChange(id, event.target.value)}
           onBlur={() => onFieldBlur(id)}
         />
+        {renderCounter(id, field.maxLength)}
         {renderSuggestions()}
       </>
     );
@@ -209,7 +232,6 @@ function FormField({
             <InputCheck
               id={`${id}-public`}
               name={id}
-              size="medium"
               checked={isPublic[id] ?? false}
               onChange={(event) => onVisibilityChange(id, event.target.checked)}
             />

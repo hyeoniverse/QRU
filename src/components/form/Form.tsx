@@ -179,6 +179,20 @@ const StyledForm = styled.form`
       margin-left: 0.25rem;
     }
 
+    /* 글자수는 입력 오른쪽 아래에 조용히 둔다. */
+    .field-counter {
+      margin: 0;
+      padding-right: 0.5rem;
+      text-align: right;
+      font-size: ${({ theme }) => theme.fontSize.extraSmall};
+      color: ${({ theme }) => theme.color.textSecondary};
+
+      &.over {
+        color: ${({ theme }) => theme.color.error};
+        font-weight: bold;
+      }
+    }
+
     .error-message {
       margin: 0;
       padding-left: 1rem;

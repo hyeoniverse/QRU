@@ -4,6 +4,9 @@ import { calculateAge, formatBirthday, parseISODate } from "./dateUtil";
 /** select 에서 "직접 입력"을 고른 상태를 나타내는 값 */
 export const SELF_VALUE = "self";
 
+/** "직접 입력" 칸의 길이 상한. 검증과 글자수 표시가 같은 값을 쓴다. */
+export const SELF_INPUT_MAX_LENGTH = 20;
+
 /** 모달 바깥의 버튼에서 form 을 submit 하기 위한 id */
 export const CARD_FORM_ID = "card-form";
 
