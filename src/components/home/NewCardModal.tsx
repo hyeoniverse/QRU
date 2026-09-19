@@ -12,7 +12,7 @@ import { useCardForm } from "../../hooks/useCardForm";
 import { NewCard } from "../../types/cardType";
 import { CARD_FORM_ID } from "../../utils/formUtil";
 import { createCard } from "../../services/card";
-import { encryptPassword } from "../../utils/passwordUtil";
+import { hashPassword } from "../../utils/passwordUtil";
 
 import Modal from "../common/Modal";
 import Button from "../common/Button";
@@ -107,10 +107,10 @@ function NewCardModal() {
     void saveCard(input);
   };
 
-  const handlePasswordSubmit = (password: string) => {
+  const handlePasswordSubmit = async (password: string) => {
     if (!pendingCard) return;
 
-    void saveCard({ ...pendingCard, password: encryptPassword(password) });
+    await saveCard({ ...pendingCard, password: await hashPassword(password) });
   };
 
   return (

@@ -1,4 +1,5 @@
 import { CardEntry } from "../utils/cardUtil";
+import { PasswordDigest } from "../utils/passwordUtil";
 import { FormValues, FormVisibility } from "./formType";
 
 /** 회원/비회원 명함이 저장되는 컬렉션 (분리 유지 여부는 #32 에서 논의 중) */
@@ -32,8 +33,8 @@ export type PrivateCard = {
   uid: string | null;
   values: FormValues;
   isPublic: FormVisibility;
-  /** 비회원이 명함을 관리할 때 쓰는 비밀번호 (검증은 서버에서만 가능) */
-  password?: string;
+  /** 비회원이 명함을 관리할 때 쓰는 비밀번호 해시 (검증은 서버에서만 가능) */
+  password?: PasswordDigest;
 };
 
 /** 화면에서 다루는 명함 */
@@ -44,5 +45,5 @@ export type NewCard = {
   values: FormValues;
   isPublic: FormVisibility;
   uid: string | null;
-  password?: string;
+  password?: PasswordDigest;
 };
