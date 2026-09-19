@@ -1,12 +1,12 @@
 import { useRef, useState } from "react";
 import styled from "styled-components";
-import { FaCamera, FaTrash } from "react-icons/fa";
+import { FaCamera, FaPlus, FaTrash } from "react-icons/fa";
 
 import {
   ACCEPTED_IMAGE_TYPES,
   fileToPhotoDataUrl,
 } from "../../utils/imageUtil";
-import Button from "../common/Button";
+import Loading from "../common/Loading";
 
 interface Props {
   /** 줄여서 담은 JPEG 데이터 URL. 없으면 사진 없음 */
@@ -15,7 +15,12 @@ interface Props {
   onError: (message: string) => void;
 }
 
-/** 명함에 넣을 사진을 고른다. 고르는 즉시 줄여서 데이터 URL 로 들고 있는다. */
+/**
+ * 명함에 넣을 사진을 고른다. 고르는 즉시 줄여서 데이터 URL 로 들고 있는다.
+ *
+ * 원형 미리보기 자체가 선택 버튼이고, 오른쪽 위 배지가 상태를 알려준다.
+ * 사진이 없으면 + 로 추가를 유도하고, 있으면 휴지통으로 삭제를 받는다.
+ */
 function PhotoPicker({ value, onChange, onError }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -44,76 +49,134 @@ function PhotoPicker({ value, onChange, onError }: Props) {
 
   return (
     <StyledPhotoPicker>
-      <div className="photo-preview" aria-hidden={!value}>
-        {value ? <img src={value} alt="선택한 명함 사진" /> : <FaCamera />}
-      </div>
-
-      <div className="photo-actions">
-        <Button
-          type="button"
-          size="small"
-          disabled={isProcessing}
-          onClick={() => inputRef.current?.click()}
-        >
-          {value ? "사진 변경" : "사진 추가"}
-        </Button>
-
-        {value && (
-          <Button
-            type="button"
-            size="small"
-            scheme="blur"
-            aria-label="사진 삭제"
-            onClick={() => onChange(null)}
-          >
-            <FaTrash />
-          </Button>
+      <button
+        type="button"
+        className="photo-button"
+        disabled={isProcessing}
+        title={value ? "사진 변경" : "사진 추가"}
+        aria-label={value ? "사진 변경" : "사진 추가"}
+        onClick={() => inputRef.current?.click()}
+      >
+        {isProcessing ? (
+          <Loading size="medium" />
+        ) : value ? (
+          <img src={value} alt="" />
+        ) : (
+          <FaCamera className="photo-placeholder" />
         )}
+      </button>
 
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ACCEPTED_IMAGE_TYPES}
-          hidden
-          onChange={handleSelect}
-        />
-      </div>
+      {value ? (
+        <button
+          type="button"
+          className="photo-badge remove"
+          title="사진 삭제"
+          aria-label="사진 삭제"
+          onClick={() => onChange(null)}
+        >
+          <FaTrash />
+        </button>
+      ) : (
+        <span className="photo-badge" aria-hidden="true">
+          <FaPlus />
+        </span>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={ACCEPTED_IMAGE_TYPES}
+        hidden
+        onChange={handleSelect}
+      />
     </StyledPhotoPicker>
   );
 }
 
-const StyledPhotoPicker = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding-left: 1rem;
+const BADGE_SIZE = "1.75rem";
 
-  .photo-preview {
+const StyledPhotoPicker = styled.div`
+  position: relative;
+  width: 5rem;
+  margin-left: 1rem;
+  flex-shrink: 0;
+
+  .photo-button {
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
 
-    width: 4.5rem;
+    width: 100%;
     aspect-ratio: 1;
+    padding: 0;
     overflow: hidden;
 
+    border: none;
     border-radius: 50%;
     background: ${({ theme }) => theme.color.blur};
     box-shadow: ${({ theme }) => theme.shadow.light};
     color: ${({ theme }) => theme.color.textSecondary};
+    cursor: pointer;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      transform: translateY(-0.1rem);
+      box-shadow: ${({ theme }) => theme.shadow.default};
+    }
+
+    &:disabled {
+      cursor: default;
+    }
 
     img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
+
+    .photo-placeholder {
+      font-size: ${({ theme }) => theme.fontSize.large};
+    }
   }
 
-  .photo-actions {
+  .photo-badge {
+    position: absolute;
+    top: -0.2rem;
+    right: -0.2rem;
+
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
+
+    width: ${BADGE_SIZE};
+    height: ${BADGE_SIZE};
+    padding: 0;
+
+    border: none;
+    border-radius: 50%;
+    background: ${({ theme }) => theme.color.primary};
+    color: ${({ theme }) => theme.color.onPrimary};
+    box-shadow: ${({ theme }) => theme.shadow.light};
+    pointer-events: none;
+
+    svg {
+      width: 55%;
+      height: 55%;
+    }
+
+    /* 삭제는 실제로 누를 수 있어야 한다. */
+    &.remove {
+      pointer-events: auto;
+      cursor: pointer;
+      background: ${({ theme }) => theme.color.error};
+      color: ${({ theme }) => theme.color.onError};
+
+      &:hover,
+      &:focus-visible {
+        box-shadow: ${({ theme }) => theme.shadow.default};
+      }
+    }
   }
 `;
 
