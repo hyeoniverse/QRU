@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# PR 스크린샷 (scripts/pr-screenshots.mjs)
+.screenshots
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

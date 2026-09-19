@@ -3,46 +3,21 @@ import styled from "styled-components";
 import { FontSize } from "../../styles/theme";
 
 interface Props
-  extends Omit<
-    React.InputHTMLAttributes<HTMLInputElement>,
-    "onBlur" | "onChange" | "size"
-  > {
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size" | "type"> {
   size?: FontSize;
   label?: string;
-  onBlur?: (name: string, checked: boolean) => void; // 커스텀 onBlur
-  onChange?: (name: string, checked: boolean) => void; // 커스텀 onChange
 }
 
 const InputCheck = React.forwardRef<HTMLInputElement, Props>(
-  ({ size, label, onBlur, onChange, ...props }, ref) => {
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-      const { name, checked } = e.target;
-      if (onBlur) {
-        onBlur(name, checked); // 커스텀 onBlur 호출
-      }
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const { name, checked } = e.target;
-      if (onChange) {
-        onChange(name, checked);
-      }
-    };
-
-    return (
-      <StyledInputCheck $size={size} className="input-check">
-        {label && <label>{label}</label>}
-        <input
-          type="checkbox"
-          ref={ref}
-          onBlur={handleBlur}
-          onChange={handleChange}
-          {...props}
-        />
-      </StyledInputCheck>
-    );
-  }
+  ({ size, label, ...props }, ref) => (
+    <StyledInputCheck $size={size} className="input-check">
+      {label && <label htmlFor={props.id}>{label}</label>}
+      <input type="checkbox" ref={ref} {...props} />
+    </StyledInputCheck>
+  )
 );
+
+InputCheck.displayName = "InputCheck";
 
 interface StyleProps {
   $size?: FontSize;
@@ -63,9 +38,11 @@ const StyledInputCheck = styled.div<StyleProps>`
     transition: all 0.3s ease;
     text-align: center;
     font-size: ${({ theme }) => theme.fontSize.extraSmall};
+    cursor: pointer;
   }
 
-  &:hover label {
+  &:hover label,
+  &:focus-within label {
     visibility: visible;
     height: auto;
     opacity: 1;
@@ -94,8 +71,13 @@ const StyledInputCheck = styled.div<StyleProps>`
       background: ${({ theme }) => theme.color.primary};
     }
 
-    &:focus {
+    &:focus-visible {
       box-shadow: ${({ theme }) => theme.shadow.default};
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.5;
     }
   }
 `;

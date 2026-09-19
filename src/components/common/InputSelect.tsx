@@ -1,93 +1,109 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { IoMdArrowDropdown } from "react-icons/io";
+import { IOption } from "../../types/formType";
 
 interface Props {
   id?: string;
-  name: string;
+  name?: string;
   label?: string;
   value: string;
-  options: { label: string; value: string }[];
+  options: IOption[];
   onChange: (value: string) => void;
-  onBlur?: (name: string, value: string) => void;
+  /** 목록이 닫힐 때(선택 또는 바깥 클릭) 호출된다. */
+  onBlur?: () => void;
   placeholder?: string;
-  children?: React.ReactNode;
+  disabled?: boolean;
 }
 
-const InputSelect: React.FC<Props> = ({
+const InputSelect = ({
+  id,
   name,
-  value,
   label,
+  value,
   options,
   onChange,
   onBlur,
   placeholder = "선택하세요",
-  children,
-}) => {
+  disabled,
+}: Props) => {
   const [isOpen, setIsOpen] = useState(false);
   const selectRef = useRef<HTMLDivElement>(null);
 
-  const handleToggle = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsOpen((prev) => !prev);
-  };
-
-  const handleOptionClick = (optionValue: string) => {
-    onChange(optionValue);
-    setIsOpen(false);
-
-    // onBlur 호출
-    if (!optionValue && onBlur) {
-      onBlur(name, optionValue);
-    }
-  };
-
-  const handleClickOutside = useCallback(
-    (e: MouseEvent) => {
-      if (selectRef.current && !selectRef.current.contains(e.target as Node)) {
-        if (isOpen) {
-          if (onBlur) {
-            onBlur(name, "");
-          }
-
-          setIsOpen(false);
-        }
-      }
-    },
-    [isOpen, name, onBlur]
-  );
+  // 바깥 클릭 핸들러가 매 렌더마다 다시 등록되지 않도록 최신 콜백만 참조한다.
+  const onBlurRef = useRef(onBlur);
+  useEffect(() => {
+    onBlurRef.current = onBlur;
+  });
 
   useEffect(() => {
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+    if (!isOpen) return;
+
+    const close = () => {
+      setIsOpen(false);
+      onBlurRef.current?.();
     };
-  }, [handleClickOutside]);
+
+    const handleMouseDown = (event: MouseEvent) => {
+      if (selectRef.current?.contains(event.target as Node)) return;
+      close();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      // 목록만 닫고 모달까지 닫히지는 않도록 막는다.
+      event.stopPropagation();
+      close();
+    };
+
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  const handleSelect = (optionValue: string) => {
+    onChange(optionValue);
+    setIsOpen(false);
+    onBlur?.();
+  };
+
+  const selectedLabel = options.find((option) => option.value === value)?.label;
 
   return (
     <StyledInputSelect ref={selectRef} $open={isOpen}>
-      {label && <label>{label}</label>}
-      <div className="select-display" onClick={handleToggle}>
-        {value
-          ? options.find((option) => option.value === value)?.label ||
-            placeholder
-          : placeholder}
+      {label && <label htmlFor={id}>{label}</label>}
+      <button
+        type="button"
+        id={id}
+        name={name}
+        className="select-display"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((open) => !open)}
+      >
+        <span className={selectedLabel ? "select-value" : "select-value placeholder"}>
+          {selectedLabel ?? placeholder}
+        </span>
         <IoMdArrowDropdown className={`select-arrow ${isOpen ? "open" : ""}`} />
-      </div>
-      <ul className="options-list">
+      </button>
+      <ul className="options-list" role="listbox" aria-label={label ?? name}>
         {options.map((option) => (
           <li
             key={option.value}
-            className={`option-item ${
-              option.value === value ? "selected" : ""
-            }`}
-            onClick={() => handleOptionClick(option.value)}
+            role="option"
+            aria-selected={option.value === value}
+            className={`option-item ${option.value === value ? "selected" : ""}`}
+            onClick={() => handleSelect(option.value)}
           >
             {option.label}
           </li>
         ))}
       </ul>
-      {children}
     </StyledInputSelect>
   );
 };
@@ -96,28 +112,51 @@ interface StyleProps {
   $open: boolean;
 }
 
-interface StyleProps {
-  $open: boolean;
-}
-
 const StyledInputSelect = styled.div<StyleProps>`
   position: relative;
+
+  label {
+    margin-left: 0.5rem;
+    font-size: ${({ theme }) => theme.fontSize.extraSmall};
+    color: ${({ theme }) => theme.color.text};
+  }
 
   .select-display {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    width: 100%;
     padding: 0.5rem 1rem;
+    border: none;
     box-shadow: ${({ theme }) => theme.shadow.light};
     border-radius: ${({ theme }) => theme.borderRadius.default};
     background: ${({ theme }) => theme.color.blur};
+    color: ${({ theme }) => theme.color.text};
+    font-family: inherit;
     font-size: ${({ theme }) => theme.fontSize.small};
+    text-align: left;
     cursor: pointer;
     line-height: 1.8;
     height: 2.5rem;
     z-index: 1000;
 
+    &:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
+
+    .select-value {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      &.placeholder {
+        color: ${({ theme }) => theme.color.textSecondary};
+      }
+    }
+
     .select-arrow {
+      flex-shrink: 0;
       margin-left: 0.5rem;
       transition: transform 0.25s ease-in-out;
       font-size: ${({ theme }) => theme.fontSize.large};
@@ -132,7 +171,6 @@ const StyledInputSelect = styled.div<StyleProps>`
   .options-list {
     width: 100%;
     visibility: ${({ $open }) => ($open ? "visible" : "hidden")};
-    max-height: ${({ $open }) => ($open ? "auto" : "0")};
     opacity: ${({ $open }) => ($open ? "1" : "0")};
     transform-origin: top;
     transform: ${({ $open }) => ($open ? "scaleY(1)" : "scaleY(0)")};

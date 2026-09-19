@@ -15,6 +15,7 @@ export type ColorKey =
   | "onError" // 오류 색상 위의 텍스트 색상
   | "blur" // 흐린 색상
   | "text" // 텍스트 색상
+  | "textSecondary" // 보조 텍스트 색상 ex) placeholder, 자동 입력 값
   | "onText"; // 텍스트 위의 색상
 export type FontSize =
   | "extraLarge"
@@ -39,7 +40,7 @@ export type ButtonScheme =
 export type Shadow = "default" | "strong" | "light" | "hover" | "none";
 export type LayoutWidth = "large" | "medium" | "small";
 export type MediaQuery = "mobile" | "tablet" | "desktop";
-interface Theme {
+export interface Theme {
   name: ThemeName;
   color: Record<ColorKey, string>;
   fontSize: Record<FontSize, string>;
@@ -93,6 +94,7 @@ export const lightTheme: Theme = {
     onError: "#ffffff",
     blur: "rgba(255, 255, 255, 0.15)",
     text: "#213C48",
+    textSecondary: "#5c7a88",
     onText: "#e0f7fa",
   },
   fontSize: {
@@ -212,6 +214,7 @@ export const darkTheme: Theme = {
     onError: "#ffffff",
     blur: "rgba(1, 1, 1, 0.1)",
     text: "#e8e8e8",
+    textSecondary: "#9aa5aa",
     onText: "#00867d",
   },
   shadow: {

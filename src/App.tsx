@@ -44,7 +44,7 @@ const router = createBrowserRouter(
       element: <Layout>{item.element}</Layout>,
       errorElement: <Error />,
     };
-  })
+  }),
 );
 
 function App() {

@@ -1,46 +1,32 @@
 import React from "react";
 import styled from "styled-components";
 
-interface Props
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onBlur"> {
+interface Props extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
-  placeholder?: string;
-  inputType?: "number" | "select" | "textarea" | "text" | "email" | "password";
-  onBlur?: (name: string, value: string) => void;
 }
 
 const InputText = React.forwardRef<HTMLInputElement, Props>(
-  (
-    { label, placeholder, inputType = "text", onBlur, onChange, ...props },
-    ref
-  ) => {
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-      const { name, value } = e.target;
-      if (onBlur) {
-        onBlur(name, value);
-      }
-    };
-
-    return (
-      <StyledInputText className="input-text">
-        {label && <label>{label}</label>}
-        <input
-          placeholder={placeholder}
-          ref={ref}
-          type={inputType}
-          onBlur={handleBlur} // 커스텀 onBlur 전달
-          onChange={onChange}
-          {...props}
-        />
-      </StyledInputText>
-    );
-  }
+  ({ label, ...props }, ref) => (
+    <StyledInputText className="input-text">
+      {label && <label htmlFor={props.id}>{label}</label>}
+      <input ref={ref} type="text" {...props} />
+    </StyledInputText>
+  )
 );
+
+InputText.displayName = "InputText";
 
 const StyledInputText = styled.div`
   display: flex;
+  flex-direction: column;
   width: 100%;
   line-height: 1.8;
+
+  label {
+    margin-left: 0.5rem;
+    font-size: ${({ theme }) => theme.fontSize.extraSmall};
+    color: ${({ theme }) => theme.color.text};
+  }
 
   input {
     display: flex;
@@ -65,6 +51,17 @@ const StyledInputText = styled.div`
 
     &::placeholder {
       color: ${({ theme }) => theme.color.textSecondary};
+    }
+
+    /* 다른 값에서 자동으로 채워지는 입력 */
+    &:read-only {
+      color: ${({ theme }) => theme.color.textSecondary};
+      cursor: default;
+
+      &:focus {
+        background: ${({ theme }) => theme.color.blur};
+        box-shadow: ${({ theme }) => theme.shadow.light};
+      }
     }
   }
 `;
