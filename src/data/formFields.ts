@@ -10,6 +10,9 @@ export const CUSTOM_FIELD_OPTIONS: IOption[] = [
   { label: "직무/직책", value: "position" },
   { label: "연락처", value: "contact" },
   { label: "웹사이트", value: "website" },
+  { label: "활동 지역", value: "region" },
+  { label: "관심 분야", value: "interest" },
+  { label: "좌우명", value: "motto" },
   { label: "한마디", value: "message" },
   { label: "직접 입력", value: SELF_VALUE },
 ];
@@ -18,6 +21,7 @@ export const FORM_FIELDS: IFormField[] = [
   {
     required: true,
     id: "bio",
+    group: "기본 정보",
     label: "한 줄 자기소개",
     type: "text",
     placeholder: "자신을 표현할 수 있는 문구를 입력해주세요.",
@@ -27,6 +31,7 @@ export const FORM_FIELDS: IFormField[] = [
   {
     required: true,
     id: "name",
+    span: "half",
     label: "이름",
     type: "text",
     placeholder: "이름을 입력하세요.",
@@ -36,6 +41,7 @@ export const FORM_FIELDS: IFormField[] = [
   {
     required: true,
     id: "gender",
+    span: "half",
     label: "성별",
     type: "select",
     options: [
@@ -54,22 +60,25 @@ export const FORM_FIELDS: IFormField[] = [
     subFields: [
       {
         id: "birthday",
+        span: "half",
         label: "생일",
         type: "text",
-        placeholder: "생년월일을 선택하면 자동으로 입력됩니다.",
+        placeholder: "자동으로 채워집니다",
         readOnly: true,
       },
       {
         id: "age",
+        span: "half",
         label: "나이",
         type: "number",
-        placeholder: "생년월일을 선택하면 자동으로 입력됩니다.",
+        placeholder: "자동으로 채워집니다",
         readOnly: true,
       },
     ],
   },
   {
     id: "email",
+    group: "연락처",
     label: "이메일",
     type: "email",
     placeholder: "이메일을 입력하세요.",
@@ -84,8 +93,13 @@ export const FORM_FIELDS: IFormField[] = [
     type: "select",
     options: [
       { label: "인스타그램", value: "instagram" },
+      { label: "깃허브", value: "github" },
+      { label: "링크드인", value: "linkedin" },
+      { label: "유튜브", value: "youtube" },
       { label: "트위터", value: "twitter" },
       { label: "페이스북", value: "facebook" },
+      { label: "틱톡", value: "tiktok" },
+      { label: "디스코드", value: "discord" },
       { label: "카카오톡", value: "kakao" },
       { label: "직접 입력", value: SELF_VALUE },
     ],
@@ -102,6 +116,8 @@ export const FORM_FIELDS: IFormField[] = [
   },
   {
     id: "mbti",
+    group: "나를 소개하는 것",
+    span: "half",
     label: "MBTI",
     type: "select",
     options: [
@@ -125,6 +141,10 @@ export const FORM_FIELDS: IFormField[] = [
   },
   {
     id: "hobby",
+    suggestions: [
+      "등산", "독서", "영화", "음악 감상", "게임", "운동",
+      "요리", "여행", "사진", "카페 투어", "그림", "코딩",
+    ],
     label: "취미/관심사",
     type: "text",
     placeholder: "취미를 입력하세요.",
@@ -133,6 +153,10 @@ export const FORM_FIELDS: IFormField[] = [
   },
   {
     id: "likes",
+    suggestions: [
+      "커피", "강아지", "고양이", "바다", "산", "야식",
+      "음악", "여행", "운동", "영화", "빵", "맥주",
+    ],
     label: "좋아하는 것",
     type: "text",
     placeholder: "좋아하는 것을 입력하세요.",
@@ -141,6 +165,10 @@ export const FORM_FIELDS: IFormField[] = [
   },
   {
     id: "dislikes",
+    suggestions: [
+      "지각", "벌레", "매운 음식", "소음", "월요일",
+      "추위", "더위", "기다리는 것", "막히는 길",
+    ],
     label: "싫어하는 것",
     type: "text",
     placeholder: "싫어하는 것을 입력하세요.",

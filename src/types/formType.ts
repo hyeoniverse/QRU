@@ -32,6 +32,12 @@ export interface IFormField {
    * 생년월일처럼 하위 필드로 공개 범위를 나누는 필드는 false 로 둔다.
    */
   publishable?: boolean;
+  /** 자유 입력 항목에서 눌러 넣을 수 있는 추천 값 */
+  suggestions?: string[];
+  /** 폼에서 차지하는 너비. half 는 넓은 화면에서 두 개가 한 줄에 들어간다. */
+  span?: "half" | "full";
+  /** 같은 제목 아래 묶이는 단위. 첫 필드에만 적는다. */
+  group?: string;
 }
 
 /** 필드 id -> 입력값 */

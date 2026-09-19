@@ -53,6 +53,8 @@ function FormField({
     subFields,
     readOnly,
     publishable = true,
+    suggestions,
+    span = "full",
   } = field;
 
   const value = values[id] ?? "";
@@ -103,6 +105,45 @@ function FormField({
     );
   };
 
+  /**
+   * 추천 값을 눌러 넣고 뺀다.
+   * 쉼표로 구분한 목록으로 다루므로 이미 들어 있으면 지운다.
+   */
+  const pickedSuggestions = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const toggleSuggestion = (keyword: string) => {
+    const next = pickedSuggestions.includes(keyword)
+      ? pickedSuggestions.filter((item) => item !== keyword)
+      : [...pickedSuggestions, keyword];
+
+    onValueChange(id, next.join(", "));
+  };
+
+  const renderSuggestions = () =>
+    suggestions?.length ? (
+      <ul className="field-suggestions">
+        {suggestions.map((keyword) => {
+          const picked = pickedSuggestions.includes(keyword);
+
+          return (
+            <li key={keyword}>
+              <button
+                type="button"
+                className={picked ? "suggestion picked" : "suggestion"}
+                aria-pressed={picked}
+                onClick={() => toggleSuggestion(keyword)}
+              >
+                {keyword}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    ) : null;
+
   const renderControl = () => {
     if (isChoice) {
       return (
@@ -135,21 +176,24 @@ function FormField({
     }
 
     return (
-      <InputText
-        id={id}
-        name={id}
-        type={htmlInputType(type)}
-        placeholder={placeholder}
-        value={value}
-        readOnly={readOnly}
-        onChange={(event) => onValueChange(id, event.target.value)}
-        onBlur={() => onFieldBlur(id)}
-      />
+      <>
+        <InputText
+          id={id}
+          name={id}
+          type={htmlInputType(type)}
+          placeholder={placeholder}
+          value={value}
+          readOnly={readOnly}
+          onChange={(event) => onValueChange(id, event.target.value)}
+          onBlur={() => onFieldBlur(id)}
+        />
+        {renderSuggestions()}
+      </>
     );
   };
 
   return (
-    <div className={`form-group ${type === "custom" ? "custom" : ""}`}>
+    <div className={`form-group span-${span} ${type === "custom" ? "custom" : ""}`}>
       <div className="form-field">
         <label className="field-label" htmlFor={id}>
           {label}
@@ -161,13 +205,16 @@ function FormField({
         </label>
 
         {publishable && (
-          <InputCheck
-            id={`${id}-public`}
-            name={id}
-            label="공개"
-            checked={isPublic[id] ?? false}
-            onChange={(event) => onVisibilityChange(id, event.target.checked)}
-          />
+          <label className="field-visibility" htmlFor={`${id}-public`}>
+            <InputCheck
+              id={`${id}-public`}
+              name={id}
+              size="medium"
+              checked={isPublic[id] ?? false}
+              onChange={(event) => onVisibilityChange(id, event.target.checked)}
+            />
+            <span>공개</span>
+          </label>
         )}
 
         {onRemove && (
@@ -187,18 +234,22 @@ function FormField({
       {renderControl()}
       {renderError(id)}
 
-      {subFields?.map((subField) => (
-        <FormField
-          key={subField.id}
-          field={{ ...subField, id: subFieldId(id, subField.id) }}
-          values={values}
-          isPublic={isPublic}
-          errors={errors}
-          onValueChange={onValueChange}
-          onVisibilityChange={onVisibilityChange}
-          onFieldBlur={onFieldBlur}
-        />
-      ))}
+      {subFields?.length ? (
+        <div className="field-subfields">
+          {subFields.map((subField) => (
+            <FormField
+              key={subField.id}
+              field={{ ...subField, id: subFieldId(id, subField.id) }}
+              values={values}
+              isPublic={isPublic}
+              errors={errors}
+              onValueChange={onValueChange}
+              onVisibilityChange={onVisibilityChange}
+              onFieldBlur={onFieldBlur}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
