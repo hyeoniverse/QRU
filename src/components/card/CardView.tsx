@@ -3,10 +3,12 @@ import { CardEntry, detailEntries, findEntry } from "../../utils/cardUtil";
 
 interface Props {
   entries: CardEntry[];
+  /** 줄여서 담은 JPEG 데이터 URL. 없으면 사진 자리를 비운다. */
+  photo?: string | null;
 }
 
 /** 공개 항목만 담긴 명함 본문 */
-function CardView({ entries }: Props) {
+function CardView({ entries, photo }: Props) {
   const name = findEntry(entries, "name");
   const bio = findEntry(entries, "bio");
   const details = detailEntries(entries);
@@ -14,8 +16,14 @@ function CardView({ entries }: Props) {
   return (
     <StyledCardView>
       <header className="card-header">
-        <h1 className="card-name">{name?.value ?? "이름 비공개"}</h1>
-        {bio && <p className="card-bio">{bio.value}</p>}
+        {photo && (
+          <img className="card-photo" src={photo} alt="명함 사진" />
+        )}
+
+        <div className="card-heading">
+          <h1 className="card-name">{name?.value ?? "이름 비공개"}</h1>
+          {bio && <p className="card-bio">{bio.value}</p>}
+        </div>
       </header>
 
       {details.length > 0 ? (
@@ -42,8 +50,25 @@ const StyledCardView = styled.article`
 
   .card-header {
     display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .card-photo {
+    flex-shrink: 0;
+    width: 5.5rem;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 50%;
+    box-shadow: ${({ theme }) => theme.shadow.default};
+  }
+
+  .card-heading {
+    display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    min-width: 0;
   }
 
   .card-name {

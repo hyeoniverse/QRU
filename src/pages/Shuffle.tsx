@@ -4,7 +4,11 @@ import styled from "styled-components";
 import { FaShuffle } from "react-icons/fa6";
 
 import { FORM_FIELDS } from "../data/formFields";
-import { CardSearchCriteria, fetchRandomCard } from "../services/card";
+import {
+  CardSearchCriteria,
+  fetchRandomCard,
+  getCardPhoto,
+} from "../services/card";
 import { isFirebaseConfigured } from "../services/firebase";
 import { CardDocument } from "../types/cardType";
 import { labelSearchKey } from "../utils/cardUtil";
@@ -61,6 +65,7 @@ function Shuffle() {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [text, setText] = useState("");
   const [card, setCard] = useState<CardDocument | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
 
   // 직전에 본 명함을 피하려고 들고 있는다. 렌더링과 무관하므로 ref 를 쓴다.
@@ -74,6 +79,7 @@ function Shuffle() {
 
       if (!found) {
         setCard(null);
+        setPhoto(null);
         setStatus("empty");
         return;
       }
@@ -81,6 +87,9 @@ function Shuffle() {
       lastIdRef.current = found.id;
       setCard(found);
       setStatus("idle");
+
+      // 사진은 보여줄 한 장에 대해서만 읽는다.
+      setPhoto(found.hasPhoto ? await getCardPhoto(found) : null);
     } catch (error) {
       console.error("Error shuffling cards:", error);
       setStatus("error");
@@ -182,7 +191,7 @@ function Shuffle() {
 
         {status === "idle" && card && (
           <Link className="shuffle-card" to={`/cards/${card.id}`}>
-            <CardView entries={card.entries} />
+            <CardView entries={card.entries} photo={photo} />
           </Link>
         )}
       </div>

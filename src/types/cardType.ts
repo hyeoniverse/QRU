@@ -16,6 +16,21 @@ export type CardCollection =
 export const PRIVATE_CARD_PATH = ["private", "card"] as const;
 
 /**
+ * 사진이 들어가는 하위 문서 경로.
+ *
+ * 명함 문서에 같이 넣으면 셔플 질의가 후보 수십 장을 가져올 때마다
+ * 사진까지 따라온다. 한 장을 볼 때만 읽도록 따로 둔다.
+ */
+export const PHOTO_PATH = ["photo", "data"] as const;
+
+export type CardPhoto = {
+  /** private 문서와 같은 방식으로 소유권을 판단한다. */
+  uid: string | null;
+  /** 줄여서 담은 JPEG 데이터 URL */
+  dataUrl: string;
+};
+
+/**
  * 누구나 읽을 수 있는 공개 문서.
  * "공개"로 설정한 항목만 들어간다. 비공개 항목은 아예 저장되지 않는다.
  *
@@ -31,6 +46,8 @@ export type PublicCard = {
   inShuffle: boolean;
   /** 항목 id -> 정규화된 값. 조건 검색에만 쓴다. */
   search: CardSearchIndex;
+  /** 사진 하위 문서가 있는지. 있을 때만 따로 읽는다. */
+  hasPhoto: boolean;
 };
 
 /**
@@ -49,6 +66,8 @@ export type PrivateCard = {
 export type CardDocument = Omit<PublicCard, "createdAt"> & {
   id: string;
   createdAt: Date | null;
+  /** 사진을 읽을 때 어느 컬렉션을 볼지 알기 위해 담아둔다. */
+  collection: CardCollection;
 };
 
 /** 명함 생성 입력 */
@@ -58,5 +77,7 @@ export type NewCard = {
   uid: string | null;
   /** 랜덤 셔플 결과에 노출할지 */
   inShuffle: boolean;
+  /** 줄여서 담은 JPEG 데이터 URL. 없으면 사진 없이 만든다. */
+  photo?: string;
   password?: PasswordDigest;
 };

@@ -18,6 +18,8 @@ interface CardFormState {
   customFieldSeq: number;
   /** 랜덤 셔플 결과에 노출할지 */
   inShuffle: boolean;
+  /** 줄여서 담은 JPEG 데이터 URL. 없으면 사진 없음 */
+  photo: string | null;
 }
 
 type CardFormAction =
@@ -28,6 +30,7 @@ type CardFormAction =
   | { type: "addCustomField" }
   | { type: "removeCustomField"; id: string }
   | { type: "changeShuffle"; inShuffle: boolean }
+  | { type: "changePhoto"; photo: string | null }
   | { type: "reset" };
 
 const createInitialState = (): CardFormState => ({
@@ -38,6 +41,7 @@ const createInitialState = (): CardFormState => ({
   customFieldSeq: 0,
   // README 의 excludeFromShuffle 처럼 기본은 노출이고 원하면 끈다.
   inShuffle: true,
+  photo: null,
 });
 
 const reducer = (state: CardFormState, action: CardFormAction): CardFormState => {
@@ -103,6 +107,9 @@ const reducer = (state: CardFormState, action: CardFormAction): CardFormState =>
     case "changeShuffle":
       return { ...state, inShuffle: action.inShuffle };
 
+    case "changePhoto":
+      return { ...state, photo: action.photo };
+
     case "reset":
       return createInitialState();
 
@@ -130,6 +137,10 @@ export const useCardForm = () => {
 
   const changeShuffle = useCallback((inShuffle: boolean) => {
     dispatch({ type: "changeShuffle", inShuffle });
+  }, []);
+
+  const changePhoto = useCallback((photo: string | null) => {
+    dispatch({ type: "changePhoto", photo });
   }, []);
 
   const blurField = useCallback((id: string) => {
@@ -171,10 +182,12 @@ export const useCardForm = () => {
     errors: state.errors,
     customFieldCount: state.customFieldIds.length,
     inShuffle: state.inShuffle,
+    photo: state.photo,
     canAddCustomField: state.customFieldIds.length < MAX_CUSTOM_FIELDS,
     changeValue,
     changeVisibility,
     changeShuffle,
+    changePhoto,
     blurField,
     addCustomField,
     removeCustomField,

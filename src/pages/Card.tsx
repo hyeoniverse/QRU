@@ -3,7 +3,7 @@ import { useQuery } from "react-query";
 import styled from "styled-components";
 import { FaCircleInfo } from "react-icons/fa6";
 
-import { getCard } from "../services/card";
+import { getCard, getCardPhoto } from "../services/card";
 import { isFirebaseConfigured } from "../services/firebase";
 import CardView from "../components/card/CardView";
 import CardShare from "../components/card/CardShare";
@@ -28,6 +28,13 @@ function Card() {
     enabled: Boolean(id) && isFirebaseConfigured,
     retry: false,
   });
+
+  // 사진은 명함 문서와 따로 저장되어 있어 한 번 더 읽는다.
+  const { data: photo } = useQuery(
+    ["card-photo", card?.id],
+    () => getCardPhoto(card as NonNullable<typeof card>),
+    { enabled: Boolean(card?.hasPhoto), retry: false }
+  );
 
   if (!isFirebaseConfigured) {
     return (
@@ -83,7 +90,7 @@ function Card() {
       )}
 
       <div className="card-panel">
-        <CardView entries={card.entries} />
+        <CardView entries={card.entries} photo={photo} />
         <CardShare url={cardUrl} serialNumber={card.serialNumber} />
       </div>
 
