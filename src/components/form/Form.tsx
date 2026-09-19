@@ -213,9 +213,9 @@ const StyledForm = styled.form`
         color: ${({ theme }) => theme.color.warning};
       }
 
+      /* 굵기까지 바꾸면 글자 폭이 달라져 숫자가 흔들린다. 색으로만 알린다. */
       &.over {
         color: ${({ theme }) => theme.color.error};
-        font-weight: bold;
       }
     }
 
