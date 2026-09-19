@@ -1,4 +1,12 @@
-import { collection, doc, getDoc, writeBatch } from "firebase/firestore";
+import {
+  Timestamp,
+  WithFieldValue,
+  collection,
+  doc,
+  getDoc,
+  serverTimestamp,
+  writeBatch,
+} from "firebase/firestore";
 import { requireDb } from "./firebase";
 import {
   CARD_COLLECTION,
@@ -28,10 +36,12 @@ export const createCard = async (
   const cardRef = doc(collection(db, collectionName));
   const serialNumber = createSerialNumber();
 
-  const publicCard: PublicCard = {
+  // createdAt 은 서버가 찍는다. 규칙에서 request.time 과 같은지 확인하므로
+  // 클라이언트가 임의의 시각을 넣을 수 없다.
+  const publicCard: WithFieldValue<PublicCard> = {
     serialNumber,
     uid: input.uid,
-    createdAt: new Date().toISOString(),
+    createdAt: serverTimestamp(),
     entries: toCardEntries(input.values, input.isPublic),
   };
 
@@ -49,6 +59,21 @@ export const createCard = async (
   await batch.commit();
 
   return { id: cardRef.id, serialNumber };
+};
+
+/**
+ * createdAt 을 Date 로 바꾼다.
+ * 서버 시각을 쓰기 전에 ISO 문자열로 저장된 문서도 함께 받아준다.
+ */
+const toDate = (value: unknown): Date | null => {
+  if (value instanceof Timestamp) return value.toDate();
+
+  if (typeof value === "string") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  return null;
 };
 
 /**
@@ -71,7 +96,7 @@ export const getCard = async (id: string): Promise<CardDocument | null> => {
       id: snapshot.id,
       serialNumber: data.serialNumber ?? "",
       uid: data.uid ?? null,
-      createdAt: data.createdAt ?? "",
+      createdAt: toDate(data.createdAt),
       entries: Array.isArray(data.entries) ? data.entries : [],
     };
   }
