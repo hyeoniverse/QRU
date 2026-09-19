@@ -1,9 +1,83 @@
 rules_version = '2';
 
+// 명함 문서는 두 겹으로 나뉜다.
+//
+//   cards/{id}                 공개 문서. "공개"로 설정한 항목만 들어 있어 누구나 읽을 수 있다.
+//   cards/{id}/private/card    입력 원본과 비밀번호. 소유자만 접근한다.
+//
+// Firestore 규칙은 필드 단위로 가릴 수 없기 때문에, 공개 문서에 비공개
+// 항목을 넣어두고 화면에서만 숨기는 방식은 통하지 않는다. 그래서 저장
+// 단계에서 아예 분리한다.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+
+    function isCardShape() {
+      let card = request.resource.data;
+
+      return card.keys().hasOnly(['serialNumber', 'uid', 'createdAt', 'entries'])
+        && card.serialNumber is string
+        && card.serialNumber.size() <= 32
+        && card.createdAt is string
+        && card.entries is list
+        && card.entries.size() <= 30;
+    }
+
+    function isPrivateCardShape() {
+      let card = request.resource.data;
+
+      return card.keys().hasOnly(['uid', 'values', 'isPublic', 'password'])
+        && card.values is map
+        && card.isPublic is map;
+    }
+
+    // ---------------------------------------------------------------- 회원 명함
+    match /cards/{cardId} {
+      allow get: if true;
+      // 목록 조회는 아직 쓰는 화면이 없다. 셔플/마이페이지에서 열 때 다시 검토한다.
+      allow list: if false;
+
+      allow create: if request.auth != null
+        && isCardShape()
+        && request.resource.data.uid == request.auth.uid;
+
+      allow update: if request.auth != null
+        && isCardShape()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid;
+
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+
+      // 원본은 소유자만 본다.
+      // 명함 문서와 같은 배치로 생성되므로 부모를 get() 할 수 없다.
+      // 대신 uid 를 이 문서에도 두고 그것으로 판단한다.
+      match /private/{document=**} {
+        allow read, update, delete: if request.auth != null
+          && resource.data.uid == request.auth.uid;
+
+        allow create: if request.auth != null
+          && isPrivateCardShape()
+          && request.resource.data.uid == request.auth.uid;
+      }
+    }
+
+    // -------------------------------------------------------------- 비회원 명함
+    match /guestCards/{cardId} {
+      allow get: if true;
+      allow list: if false;
+
+      // 회원가입 없이 만들 수 있어야 하므로 인증을 요구하지 않는다.
+      // 대량 생성 방지는 App Check 또는 Cloud Functions 가 필요하다. (#30)
+      allow create: if isCardShape() && request.resource.data.uid == null;
+
+      // 비밀번호 확인은 서버에서만 할 수 있다. 그때까지 수정/삭제는 막아둔다.
+      allow update, delete: if false;
+
+      match /private/{document=**} {
+        // 비밀번호가 들어 있으므로 클라이언트에는 절대 내려보내지 않는다.
+        allow read: if false;
+        allow create: if isPrivateCardShape() && request.resource.data.uid == null;
+        allow update, delete: if false;
+      }
     }
   }
 }
