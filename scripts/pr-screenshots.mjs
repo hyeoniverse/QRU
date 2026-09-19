@@ -118,6 +118,17 @@ const SCENES = [
       await custom.scrollIntoViewIfNeeded();
     },
   },
+  {
+    name: "guide-tooltip",
+    title: "안내 툴팁",
+    viewports: ["desktop"],
+    keepHover: true,
+    action: async (page) => {
+      await openCardModal(page);
+      await page.getByRole("button", { name: "명함 생성 안내" }).hover();
+      await page.waitForTimeout(200);
+    },
+  },
 ];
 
 // ---------------------------------------------------------------- 인자 파싱
@@ -270,8 +281,11 @@ const capture = async (baseUrl, outDir, sceneFilter) => {
           if (scene.action) await scene.action(page);
 
           // 마우스를 치워 hover 상태가 스크린샷에 남지 않도록 한다.
-          const { width, height } = VIEWPORTS[viewportName];
-          await page.mouse.move(width - 1, height - 1);
+          // 툴팁처럼 hover 가 있어야 보이는 장면은 keepHover 로 건너뛴다.
+          if (!scene.keepHover) {
+            const { width, height } = VIEWPORTS[viewportName];
+            await page.mouse.move(width - 1, height - 1);
+          }
 
           await page.evaluate(() => document.fonts.ready);
           await page.waitForTimeout(300);

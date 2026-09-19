@@ -173,7 +173,10 @@ const StyledNewCard = styled.div`
   width: 100%;
   flex-direction: column;
   gap: 0.5rem;
-  overflow: clip;
+  /* 안내 툴팁이 모달 밖까지 펼쳐질 수 있어야 하므로 여기서 자르지 않는다. */
+  overflow: visible;
+  /* 대신 내부 스크롤 영역이 높이를 넘겨받을 수 있도록 축소를 허용한다. */
+  min-height: 0;
 
   .form-title {
     position: sticky;
@@ -200,6 +203,8 @@ const StyledNewCard = styled.div`
   .form-content {
     padding: 0 2rem 2rem 2rem;
     overflow-y: scroll;
+    /* 폼 끝까지 스크롤해도 뒤쪽 페이지로 스크롤이 넘어가지 않도록 한다. */
+    overscroll-behavior: contain;
     border-radius: ${({ theme }) => theme.borderRadius.default};
     scroll-behavior: smooth;
     backdrop-filter: blur(8px);
