@@ -140,7 +140,7 @@ service cloud.firestore {
       allow list: if isShuffleQuery();
 
       // 회원가입 없이 만들 수 있어야 하므로 인증을 요구하지 않는다.
-      // 대량 생성 방지는 App Check 또는 Cloud Functions 가 필요하다. (#30)
+      // 대량 생성 방지는 App Check 또는 Cloud Functions 가 필요하다. (#49)
       allow create: if isCardShape()
         && request.resource.data.uid == null
         && request.resource.data.createdAt == request.time;
