@@ -202,7 +202,8 @@ const StyledModal = styled.div`
 
     position: absolute;
     top: 1rem;
-    right: 1rem;
+    /* 본문과 같은 여백에서 끝나도록 맞춘다. */
+    right: 2rem;
     z-index: 1000;
 
     svg {

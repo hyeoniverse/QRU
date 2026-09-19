@@ -105,7 +105,6 @@ const StyledForm = styled.form`
       justify-content: flex-start;
       align-items: end;
       gap: 0.5rem;
-      padding-left: 1rem;
 
       .form-buttons {
         display: flex;
@@ -147,7 +146,7 @@ const StyledForm = styled.form`
       flex-wrap: wrap;
       gap: 0.4rem;
       margin: 0;
-      padding: 0 0 0 0.5rem;
+      padding: 0;
       list-style: none;
     }
 
@@ -182,7 +181,6 @@ const StyledForm = styled.form`
     /* 글자수는 입력 오른쪽 아래에 조용히 둔다. */
     .field-counter {
       margin: 0;
-      padding-right: 0.5rem;
       text-align: right;
       font-size: ${({ theme }) => theme.fontSize.extraSmall};
       color: ${({ theme }) => theme.color.textSecondary};
@@ -199,7 +197,6 @@ const StyledForm = styled.form`
 
     .error-message {
       margin: 0;
-      padding-left: 1rem;
       color: ${({ theme }) => theme.color.error};
       font-size: ${({ theme }) => theme.fontSize.extraSmall};
     }
