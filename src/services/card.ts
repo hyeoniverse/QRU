@@ -7,7 +7,6 @@ import {
   getDoc,
   getDocs,
   limit,
-  orderBy,
   query,
   serverTimestamp,
   where,
@@ -23,9 +22,11 @@ import {
   PublicCard,
 } from "../types/cardType";
 import {
-  ShuffleFilters,
+  CardEntry,
+  createSearchIndex,
   createSerialNumber,
-  createShuffleMeta,
+  matchesSearchText,
+  normalizeSearchValue,
   toCardEntries,
 } from "../utils/cardUtil";
 
@@ -46,6 +47,7 @@ export const createCard = async (
 
   const cardRef = doc(collection(db, collectionName));
   const serialNumber = createSerialNumber();
+  const entries: CardEntry[] = toCardEntries(input.values, input.isPublic);
 
   // createdAt 은 서버가 찍는다. 규칙에서 request.time 과 같은지 확인하므로
   // 클라이언트가 임의의 시각을 넣을 수 없다.
@@ -53,8 +55,9 @@ export const createCard = async (
     serialNumber,
     uid: input.uid,
     createdAt: serverTimestamp(),
-    entries: toCardEntries(input.values, input.isPublic),
-    shuffle: createShuffleMeta(input.values, input.isPublic, input.inShuffle),
+    entries,
+    inShuffle: input.inShuffle,
+    search: createSearchIndex(entries),
   };
 
   const privateCard: PrivateCard = {
@@ -103,12 +106,8 @@ const toCardDocument = (
   uid: data.uid ?? null,
   createdAt: toDate(data.createdAt),
   entries: Array.isArray(data.entries) ? data.entries : [],
-  shuffle: {
-    enabled: data.shuffle?.enabled ?? false,
-    key: data.shuffle?.key ?? 0,
-    gender: data.shuffle?.gender ?? null,
-    mbti: data.shuffle?.mbti ?? null,
-  },
+  inShuffle: data.inShuffle ?? false,
+  search: data.search ?? {},
 });
 
 /** 문서 id 로 공개 명함을 읽는다. 없으면 null */
@@ -127,63 +126,60 @@ export const getCard = async (id: string): Promise<CardDocument | null> => {
   return null;
 };
 
-/** 셔플 결과에 쓸 수 있는 최대 개수 (규칙의 request.query.limit 과 맞춘다) */
-const SHUFFLE_QUERY_LIMIT = 1;
 
 /**
- * 난수 key 를 기준으로 한 장을 고른다.
+ * 한 번에 가져오는 후보 수.
  *
- * Firestore 에는 무작위 추출이 없어서, 문서마다 0~1 난수를 저장해 두고
- * "그 값 이상인 첫 문서" 를 가져온다. 없으면 반대 방향으로 한 번 더 찾아
- * 끝에서 처음으로 돌아온다.
+ * 조건에 맞는 명함이 이보다 많으면 앞의 일부만 후보가 된다.
+ * 규칙의 request.query.limit 과 같은 값이어야 한다.
  */
-const pickByShuffleKey = async (
-  collectionName: string,
-  filters: ShuffleFilters,
-  key: number
-): Promise<CardDocument | null> => {
-  const db = requireDb();
+export const CANDIDATE_LIMIT = 50;
 
-  const conditions: QueryConstraint[] = [where("shuffle.enabled", "==", true)];
-  if (filters.gender) conditions.push(where("shuffle.gender", "==", filters.gender));
-  if (filters.mbti) conditions.push(where("shuffle.mbti", "==", filters.mbti));
-
-  for (const direction of ["asc", "desc"] as const) {
-    const snapshot = await getDocs(
-      query(
-        collection(db, collectionName),
-        ...conditions,
-        direction === "asc"
-          ? where("shuffle.key", ">=", key)
-          : where("shuffle.key", "<", key),
-        orderBy("shuffle.key", direction),
-        limit(SHUFFLE_QUERY_LIMIT)
-      )
-    );
-
-    const [found] = snapshot.docs;
-    if (found) return toCardDocument(found.id, found.data() as Partial<PublicCard>);
-  }
-
-  return null;
+export type CardSearchCriteria = {
+  /** 항목 id -> 정확히 일치해야 하는 값 */
+  filters?: Record<string, string>;
+  /** 아무 항목에나 부분 일치하면 되는 검색어 */
+  text?: string;
 };
 
 /**
- * 조건에 맞는 명함 한 장을 무작위로 가져온다.
+ * 조건에 맞는 셔플 대상 명함을 모은다.
+ *
+ * Firestore 에는 "같음" 조건만 넘긴다. 등식만 쓰면 단일 필드 색인을
+ * 합쳐서 처리하므로 조건을 몇 개 조합하든 복합 색인이 필요 없다.
+ * 부분 일치는 Firestore 가 못 하므로 받아온 후보 안에서 걸러낸다.
+ */
+export const searchCards = async (
+  criteria: CardSearchCriteria = {}
+): Promise<CardDocument[]> => {
+  const db = requireDb();
+
+  const conditions: QueryConstraint[] = [where("inShuffle", "==", true)];
+  for (const [id, value] of Object.entries(criteria.filters ?? {})) {
+    if (value) conditions.push(where(`search.${id}`, "==", normalizeSearchValue(value)));
+  }
+
+  const results = await Promise.all(
+    Object.values(CARD_COLLECTION).map((name) =>
+      getDocs(query(collection(db, name), ...conditions, limit(CANDIDATE_LIMIT)))
+    )
+  );
+
+  return results
+    .flatMap((snapshot) => snapshot.docs)
+    .map((found) => toCardDocument(found.id, found.data() as Partial<PublicCard>))
+    .filter((card) => matchesSearchText(card.entries, criteria.text ?? ""));
+};
+
+/**
+ * 조건에 맞는 명함 한 장을 무작위로 고른다.
  * 직전에 본 명함(exclude)은 되도록 피하지만, 그것밖에 없으면 그대로 돌려준다.
  */
 export const fetchRandomCard = async (
-  filters: ShuffleFilters = {},
+  criteria: CardSearchCriteria = {},
   exclude?: string
 ): Promise<CardDocument | null> => {
-  const key = Math.random();
-
-  // 회원/비회원 컬렉션이 분리되어 있어 양쪽에서 뽑고 그중 하나를 고른다. (#32)
-  const picked = await Promise.all(
-    Object.values(CARD_COLLECTION).map((name) => pickByShuffleKey(name, filters, key))
-  );
-
-  const candidates = picked.filter((card): card is CardDocument => card !== null);
+  const candidates = await searchCards(criteria);
   if (candidates.length === 0) return null;
 
   const fresh = candidates.filter((card) => card.id !== exclude);

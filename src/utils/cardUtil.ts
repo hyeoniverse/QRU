@@ -119,41 +119,59 @@ export const detailEntries = (entries: CardEntry[]) =>
   entries.filter((entry) => !HEADLINE_ENTRY_IDS.includes(entry.id as never));
 
 /**
- * 랜덤 셔플에 쓰는 메타데이터.
+ * 항목 id -> 정규화된 값.
  *
- * entries 는 표시용 목록이라 Firestore 에서 조건 검색을 할 수 없다.
+ * entries 는 표시용 배열이라 Firestore 로 조건 검색을 할 수 없다.
  * (배열 원소의 특정 필드로 거르는 질의를 지원하지 않는다)
- * 그래서 필터에 쓸 값만 따로 꺼내 둔다.
+ * 그래서 공개 항목 전부를 검색용 맵으로 한 번 더 저장한다.
+ *
+ * 모든 조건을 "같음" 으로만 질의하면 Firestore 가 단일 필드 색인을
+ * 합쳐서 처리하므로 복합 색인을 만들 필요가 없다. 조건을 몇 개
+ * 조합하든 색인 설정이 늘어나지 않는다.
  */
-export type CardShuffle = {
-  /** 셔플 결과에 노출할지 */
-  enabled: boolean;
-  /** 0 이상 1 미만의 난수. 무작위 한 장을 뽑을 때 쓴다. */
-  key: number;
-  /** 공개하지 않은 항목은 null 이라 필터 대상이 되지 않는다. */
-  gender: string | null;
-  mbti: string | null;
+export type CardSearchIndex = Record<string, string>;
+
+/** 대소문자와 앞뒤 공백 차이로 안 걸리는 일이 없게 맞춰둔다. */
+export const normalizeSearchValue = (value: string): string =>
+  value.trim().toLowerCase();
+
+/** 라벨 쪽을 가리키는 색인 키. 예) sns_id -> sns_id_label */
+export const labelSearchKey = (entryId: string) => `${entryId}_label`;
+
+/**
+ * 공개 항목 전부를 검색용 맵으로 만든다.
+ *
+ * 값뿐 아니라 라벨도 넣는다. SNS 종류("인스타그램")나 추가 항목 제목
+ * ("소속/회사")처럼 내용이 라벨 쪽에 담기는 항목이 있기 때문이다.
+ */
+export const createSearchIndex = (entries: CardEntry[]): CardSearchIndex =>
+  entries.reduce<CardSearchIndex>((index, entry) => {
+    const value = normalizeSearchValue(entry.value);
+    const label = normalizeSearchValue(entry.label);
+
+    if (value) index[entry.id] = value;
+    if (label) index[labelSearchKey(entry.id)] = label;
+
+    return index;
+  }, {});
+
+/**
+ * 자유 입력 검색어와 맞는지 본다.
+ *
+ * Firestore 는 부분 일치를 지원하지 않아 이 판단만 화면 쪽에서 한다.
+ * 공개 항목의 라벨과 값을 모두 훑으므로 "등산", "INFP", "3월" 처럼
+ * 아무 항목이나 걸린다.
+ */
+export const matchesSearchText = (
+  entries: CardEntry[],
+  text: string
+): boolean => {
+  const needle = normalizeSearchValue(text);
+  if (!needle) return true;
+
+  return entries.some(
+    (entry) =>
+      normalizeSearchValue(entry.value).includes(needle) ||
+      normalizeSearchValue(entry.label).includes(needle)
+  );
 };
-
-/** 셔플에서 조건으로 쓸 수 있는 항목 */
-export const SHUFFLE_FILTER_IDS = ["gender", "mbti"] as const;
-export type ShuffleFilterId = (typeof SHUFFLE_FILTER_IDS)[number];
-export type ShuffleFilters = Partial<Record<ShuffleFilterId, string>>;
-
-/** 공개로 설정한 값만 필터에 쓴다. */
-const filterValueOf = (
-  id: ShuffleFilterId,
-  values: FormValues,
-  isPublic: FormVisibility
-): string | null => (isPublic[id] ? values[id]?.trim() || null : null);
-
-export const createShuffleMeta = (
-  values: FormValues,
-  isPublic: FormVisibility,
-  enabled: boolean
-): CardShuffle => ({
-  enabled,
-  key: Math.random(),
-  gender: filterValueOf("gender", values, isPublic),
-  mbti: filterValueOf("mbti", values, isPublic),
-});
