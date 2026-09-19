@@ -185,6 +185,14 @@ const run = (command, args, input) =>
 const gh = (args, input) => run("gh", args, input);
 const ghJson = (args, input) => JSON.parse(gh(args, input));
 
+/** 실패가 정상 흐름인 조회에 쓴다. (gh 의 에러 출력을 그대로 흘리지 않는다) */
+const ghQuiet = (args) =>
+  execFileSync("gh", args, {
+    cwd: ROOT,
+    encoding: "utf8",
+    stdio: ["pipe", "pipe", "pipe"],
+  });
+
 const log = (message) => console.log(`[screenshots] ${message}`);
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -302,7 +310,7 @@ const capture = async (baseUrl, outDir, sceneFilter) => {
 /** 스크린샷 전용 브랜치가 없으면 빈 커밋으로 새로 만든다. */
 const ensureScreenshotBranch = (repo) => {
   try {
-    ghJson(["api", `repos/${repo}/git/ref/heads/${SCREENSHOT_BRANCH}`]);
+    ghQuiet(["api", `repos/${repo}/git/ref/heads/${SCREENSHOT_BRANCH}`]);
     return;
   } catch {
     log(`${SCREENSHOT_BRANCH} 브랜치를 생성합니다.`);
@@ -390,10 +398,14 @@ const buildSection = (shots, meta) => {
 
 const updatePrBody = (prNumber, section) => {
   const pr = ghJson(["pr", "view", String(prNumber), "--json", "body,url"]);
-  const current = pr.body ?? "";
+  // GitHub 은 본문을 CRLF 로 돌려준다. 줄 단위 매칭을 위해 정규화한다.
+  const current = (pr.body ?? "").replace(/\r\n/g, "\n");
 
+  // 마커가 한 줄을 통째로 차지할 때만 교체한다.
+  // 본문에서 마커를 인용해 설명하는 문장까지 삼키지 않기 위함.
   const pattern = new RegExp(
-    `${escapeRegExp(MARKER_START)}[\\s\\S]*?${escapeRegExp(MARKER_END)}`
+    `^${escapeRegExp(MARKER_START)}$[\\s\\S]*?^${escapeRegExp(MARKER_END)}$`,
+    "m"
   );
 
   const next = pattern.test(current)
