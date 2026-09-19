@@ -17,12 +17,31 @@ service cloud.firestore {
     function isCardShape() {
       let card = request.resource.data;
 
-      return card.keys().hasOnly(['serialNumber', 'uid', 'createdAt', 'entries'])
+      return card.keys().hasOnly(['serialNumber', 'uid', 'createdAt', 'entries', 'shuffle'])
         && card.serialNumber is string
         && card.serialNumber.size() <= 32
         && card.createdAt is timestamp
         && card.entries is list
-        && card.entries.size() <= 30;
+        && card.entries.size() <= 30
+        && isShuffleShape(card.shuffle);
+    }
+
+    // 랜덤 셔플에 쓰는 메타데이터. key 는 무작위 추출용 0~1 난수다.
+    function isShuffleShape(shuffle) {
+      return shuffle.keys().hasOnly(['enabled', 'key', 'gender', 'mbti'])
+        && shuffle.enabled is bool
+        && shuffle.key is number
+        && shuffle.key >= 0
+        && shuffle.key < 1;
+    }
+
+    /**
+     * 셔플은 한 장씩만 뽑고, 셔플에 노출하기로 한 명함만 대상이다.
+     * resource.data 를 참조하므로 클라이언트 질의에도 같은 조건이 없으면
+     * Firestore 가 질의 자체를 거부한다.
+     */
+    function isShuffleQuery() {
+      return request.query.limit <= 1 && resource.data.shuffle.enabled == true;
     }
 
     function isPrivateCardShape() {
@@ -39,8 +58,8 @@ service cloud.firestore {
     // ---------------------------------------------------------------- 회원 명함
     match /cards/{cardId} {
       allow get: if true;
-      // 목록 조회는 아직 쓰는 화면이 없다. 셔플/마이페이지에서 열 때 다시 검토한다.
-      allow list: if false;
+      // 목록 조회는 셔플에만 열어둔다. 마이페이지를 붙일 때 다시 검토한다.
+      allow list: if isShuffleQuery();
 
       allow create: if request.auth != null
         && isCardShape()
@@ -85,7 +104,7 @@ service cloud.firestore {
     // -------------------------------------------------------------- 비회원 명함
     match /guestCards/{cardId} {
       allow get: if true;
-      allow list: if false;
+      allow list: if isShuffleQuery();
 
       // 회원가입 없이 만들 수 있어야 하므로 인증을 요구하지 않는다.
       // 대량 생성 방지는 App Check 또는 Cloud Functions 가 필요하다. (#30)

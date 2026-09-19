@@ -16,6 +16,8 @@ interface CardFormState {
   customFieldIds: string[];
   /** 추가 항목 id 를 만들 때 쓰는 일련번호 */
   customFieldSeq: number;
+  /** 랜덤 셔플 결과에 노출할지 */
+  inShuffle: boolean;
 }
 
 type CardFormAction =
@@ -25,6 +27,7 @@ type CardFormAction =
   | { type: "setErrors"; errors: FormErrors }
   | { type: "addCustomField" }
   | { type: "removeCustomField"; id: string }
+  | { type: "changeShuffle"; inShuffle: boolean }
   | { type: "reset" };
 
 const createInitialState = (): CardFormState => ({
@@ -33,6 +36,8 @@ const createInitialState = (): CardFormState => ({
   errors: {},
   customFieldIds: [],
   customFieldSeq: 0,
+  // README 의 excludeFromShuffle 처럼 기본은 노출이고 원하면 끈다.
+  inShuffle: true,
 });
 
 const reducer = (state: CardFormState, action: CardFormAction): CardFormState => {
@@ -95,6 +100,9 @@ const reducer = (state: CardFormState, action: CardFormAction): CardFormState =>
         errors: omitKeys(state.errors, action.id),
       };
 
+    case "changeShuffle":
+      return { ...state, inShuffle: action.inShuffle };
+
     case "reset":
       return createInitialState();
 
@@ -118,6 +126,10 @@ export const useCardForm = () => {
 
   const changeVisibility = useCallback((id: string, isPublic: boolean) => {
     dispatch({ type: "changeVisibility", id, isPublic });
+  }, []);
+
+  const changeShuffle = useCallback((inShuffle: boolean) => {
+    dispatch({ type: "changeShuffle", inShuffle });
   }, []);
 
   const blurField = useCallback((id: string) => {
@@ -158,9 +170,11 @@ export const useCardForm = () => {
     isPublic: state.isPublic,
     errors: state.errors,
     customFieldCount: state.customFieldIds.length,
+    inShuffle: state.inShuffle,
     canAddCustomField: state.customFieldIds.length < MAX_CUSTOM_FIELDS,
     changeValue,
     changeVisibility,
+    changeShuffle,
     blurField,
     addCustomField,
     removeCustomField,

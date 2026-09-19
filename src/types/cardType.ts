@@ -1,5 +1,5 @@
 import { Timestamp } from "firebase/firestore";
-import { CardEntry } from "../utils/cardUtil";
+import { CardEntry, CardShuffle } from "../utils/cardUtil";
 import { PasswordDigest } from "../utils/passwordUtil";
 import { FormValues, FormVisibility } from "./formType";
 
@@ -27,6 +27,7 @@ export type PublicCard = {
   uid: string | null;
   createdAt: Timestamp;
   entries: CardEntry[];
+  shuffle: CardShuffle;
 };
 
 /**
@@ -52,5 +53,7 @@ export type NewCard = {
   values: FormValues;
   isPublic: FormVisibility;
   uid: string | null;
+  /** 랜덤 셔플 결과에 노출할지 */
+  inShuffle: boolean;
   password?: PasswordDigest;
 };

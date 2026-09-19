@@ -117,3 +117,43 @@ export const findEntry = (entries: CardEntry[], id: string) =>
 /** 상단에 따로 쓰는 항목을 뺀 나머지 */
 export const detailEntries = (entries: CardEntry[]) =>
   entries.filter((entry) => !HEADLINE_ENTRY_IDS.includes(entry.id as never));
+
+/**
+ * 랜덤 셔플에 쓰는 메타데이터.
+ *
+ * entries 는 표시용 목록이라 Firestore 에서 조건 검색을 할 수 없다.
+ * (배열 원소의 특정 필드로 거르는 질의를 지원하지 않는다)
+ * 그래서 필터에 쓸 값만 따로 꺼내 둔다.
+ */
+export type CardShuffle = {
+  /** 셔플 결과에 노출할지 */
+  enabled: boolean;
+  /** 0 이상 1 미만의 난수. 무작위 한 장을 뽑을 때 쓴다. */
+  key: number;
+  /** 공개하지 않은 항목은 null 이라 필터 대상이 되지 않는다. */
+  gender: string | null;
+  mbti: string | null;
+};
+
+/** 셔플에서 조건으로 쓸 수 있는 항목 */
+export const SHUFFLE_FILTER_IDS = ["gender", "mbti"] as const;
+export type ShuffleFilterId = (typeof SHUFFLE_FILTER_IDS)[number];
+export type ShuffleFilters = Partial<Record<ShuffleFilterId, string>>;
+
+/** 공개로 설정한 값만 필터에 쓴다. */
+const filterValueOf = (
+  id: ShuffleFilterId,
+  values: FormValues,
+  isPublic: FormVisibility
+): string | null => (isPublic[id] ? values[id]?.trim() || null : null);
+
+export const createShuffleMeta = (
+  values: FormValues,
+  isPublic: FormVisibility,
+  enabled: boolean
+): CardShuffle => ({
+  enabled,
+  key: Math.random(),
+  gender: filterValueOf("gender", values, isPublic),
+  mbti: filterValueOf("mbti", values, isPublic),
+});
