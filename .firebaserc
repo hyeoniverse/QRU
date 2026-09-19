@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "reactqru"
-  }
+    "default": "qryou-app"
+  },
+  "targets": {},
+  "etags": {}
 }
