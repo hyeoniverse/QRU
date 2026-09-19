@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { FaCircleInfo, FaPen, FaPlus } from "react-icons/fa6";
 
@@ -8,13 +9,16 @@ import { closeModal } from "../../store/slices/modalSlice";
 import { ToastType, addToast } from "../../store/slices/toastSlice";
 import { MAX_CUSTOM_FIELDS } from "../../data/formFields";
 import { useCardForm } from "../../hooks/useCardForm";
-import { CARD_COLLECTION, CardPayload } from "../../types/cardType";
+import { NewCard } from "../../types/cardType";
 import { CARD_FORM_ID } from "../../utils/formUtil";
-import { saveToFirestore } from "../../utils/firestoreUtil";
-import { encryptPassword } from "../../utils/passwordUtil";
+import { createCard } from "../../services/card";
+import { hashPassword } from "../../utils/passwordUtil";
+
+import { isFirebaseConfigured } from "../../services/firebase";
 
 import Modal from "../common/Modal";
 import Button from "../common/Button";
+import FirebaseNotice from "../common/FirebaseNotice";
 import Form from "../form/Form";
 import PasswordPopup from "./PasswordPopup";
 
@@ -33,9 +37,11 @@ function NewCardModal() {
   const user = useSelector((state: RootState) => state.auth.user);
   const isModalOpen = useSelector((state: RootState) => state.modal.isModalOpen);
 
+  const navigate = useNavigate();
+
   const form = useCardForm();
   // 비회원은 비밀번호를 받은 뒤에 저장하므로 제출할 내용을 잠시 들고 있는다.
-  const [pendingPayload, setPendingPayload] = useState<CardPayload | null>(null);
+  const [pendingCard, setPendingCard] = useState<NewCard | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -52,7 +58,7 @@ function NewCardModal() {
   }, [customFieldCount]);
 
   const handleClose = () => {
-    setPendingPayload(null);
+    setPendingCard(null);
     form.reset();
     dispatch(closeModal());
   };
@@ -66,16 +72,15 @@ function NewCardModal() {
     form.addCustomField();
   };
 
-  const saveCard = async (payload: CardPayload) => {
+  const saveCard = async (input: NewCard) => {
     setIsSaving(true);
 
     try {
-      await saveToFirestore(
-        payload.uid ? CARD_COLLECTION.member : CARD_COLLECTION.guest,
-        payload
-      );
-      notify("success", "명함이 성공적으로 생성되었습니다.");
+      const { id } = await createCard(input);
+      notify("success", "명함이 생성되었습니다.");
       handleClose();
+      // 일련번호와 QR 코드를 바로 확인할 수 있도록 생성한 명함으로 이동한다.
+      navigate(`/cards/${id}`, { state: { justCreated: true } });
     } catch (error) {
       console.error("Error saving card:", error);
       notify("error", "명함 생성 중 오류가 발생했습니다.");
@@ -92,24 +97,23 @@ function NewCardModal() {
       return;
     }
 
-    const payload: CardPayload = {
+    const input: NewCard = {
       ...form.getSubmitData(),
-      createdAt: new Date().toISOString(),
       uid: user?.uid ?? null,
     };
 
     if (!user) {
-      setPendingPayload(payload);
+      setPendingCard(input);
       return;
     }
 
-    void saveCard(payload);
+    void saveCard(input);
   };
 
-  const handlePasswordSubmit = (password: string) => {
-    if (!pendingPayload) return;
+  const handlePasswordSubmit = async (password: string) => {
+    if (!pendingCard) return;
 
-    void saveCard({ ...pendingPayload, password: encryptPassword(password) });
+    await saveCard({ ...pendingCard, password: await hashPassword(password) });
   };
 
   return (
@@ -128,40 +132,48 @@ function NewCardModal() {
               >
                 <FaCircleInfo />
               </Button>
-              <Button type="button" size="small" onClick={handleAddField}>
-                <FaPlus /> 항목 추가
-              </Button>
-              <Button
-                type="submit"
-                form={CARD_FORM_ID}
-                size="small"
-                disabled={isSaving}
-              >
-                <FaPen /> 명함 생성
-              </Button>
+              {isFirebaseConfigured && (
+                <>
+                  <Button type="button" size="small" onClick={handleAddField}>
+                    <FaPlus /> 항목 추가
+                  </Button>
+                  <Button
+                    type="submit"
+                    form={CARD_FORM_ID}
+                    size="small"
+                    disabled={isSaving}
+                  >
+                    <FaPen /> 명함 생성
+                  </Button>
+                </>
+              )}
             </div>
           </div>
           <div className="form-content" ref={scrollRef}>
-            <Form
-              fields={form.fields}
-              values={form.values}
-              isPublic={form.isPublic}
-              errors={form.errors}
-              onValueChange={form.changeValue}
-              onVisibilityChange={form.changeVisibility}
-              onFieldBlur={form.blurField}
-              onCustomFieldRemove={form.removeCustomField}
-              onSubmit={handleSubmit}
-            />
+            {isFirebaseConfigured ? (
+              <Form
+                fields={form.fields}
+                values={form.values}
+                isPublic={form.isPublic}
+                errors={form.errors}
+                onValueChange={form.changeValue}
+                onVisibilityChange={form.changeVisibility}
+                onFieldBlur={form.blurField}
+                onCustomFieldRemove={form.removeCustomField}
+                onSubmit={handleSubmit}
+              />
+            ) : (
+              <FirebaseNotice description="명함을 만들고 저장하려면 Firebase 연결이 필요합니다." />
+            )}
           </div>
         </StyledNewCard>
       </Modal>
 
-      {pendingPayload && (
+      {pendingCard && (
         <PasswordPopup
           isSubmitting={isSaving}
           onSubmit={handlePasswordSubmit}
-          onCancel={() => setPendingPayload(null)}
+          onCancel={() => setPendingCard(null)}
         />
       )}
     </>

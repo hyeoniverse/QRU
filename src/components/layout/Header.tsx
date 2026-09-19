@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "../../store";
 import { login, logout } from "../../store/slices/authSlice";
+import { addToast } from "../../store/slices/toastSlice";
+import { isFirebaseConfigured } from "../../services/firebase";
 import { useResponsive } from "../../hooks/useResponsive";
 
 import styled from "styled-components";
@@ -20,6 +22,25 @@ function Header() {
   const { user, isLoading } = useSelector((state: RootState) => state.auth);
   const isLoggedIn = !!user;
   const { isSearchOpen, isMobileOpen, toggleSearch } = useResponsive();
+
+  const handleAuthClick = () => {
+    // 설정이 없으면 로그인 창이 뜨지 않으므로 이유를 알려준다.
+    if (!isFirebaseConfigured) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: "Firebase 설정이 없어 로그인할 수 없습니다. .env 의 VITE_FIREBASE_* 값을 확인해주세요.",
+        })
+      );
+      return;
+    }
+
+    if (isLoggedIn) {
+      dispatch(logout());
+    } else {
+      dispatch(login());
+    }
+  };
 
   return (
     <HeaderStyle $isSearchOpen={isSearchOpen}>
@@ -74,15 +95,7 @@ function Header() {
               </Dropdown>
             ) : (
               <>
-                <Button
-                  onClick={() => {
-                    if (isLoggedIn) {
-                      dispatch(logout());
-                    } else {
-                      dispatch(login());
-                    }
-                  }}
-                >
+                <Button onClick={handleAuthClick}>
                   <FaGoogle />
                   {!isMobileOpen && "로그인"}
                 </Button>

@@ -6,7 +6,7 @@ import { QRUThemeProvider } from "./context/themeContext";
 import Layout from "./components/layout/Layout";
 import Home from "./pages/Home";
 import MyPage from "./pages/MyPage";
-import MyCard from "./pages/MyCard";
+import Card from "./pages/Card";
 import Shuffle from "./pages/Shuffle";
 import NotFound from "./pages/NotFound";
 import Error from "./components/common/Error";
@@ -25,7 +25,7 @@ const routeList = [
   },
   {
     path: "/cards/:id",
-    element: <MyCard />,
+    element: <Card />,
   },
   {
     path: "/cards/shuffle",
