@@ -1,20 +1,37 @@
-
 <svg
   xmlns="http://www.w3.org/2000/svg"
   viewBox="0 0 70 70"
   width="70"
   height="70"
 >
-  <!-- Background squares -->
-  <rect x="0" y="0" width="20" height="20" fill="#4db6ac" rx="4"></rect>
-  <rect x="25" y="0" width="20" height="20" fill="#4db6ac" rx="4"></rect>
-  <rect x="0" y="25" width="20" height="20" fill="#4db6ac" rx="4"></rect>
-  <rect x="25" y="25" width="20" height="20" fill="#4db6ac" rx="4"></rect>
-  <rect x="0" y="50" width="20" height="20" fill="#4db6ac" rx="4"></rect>
+  <!-- Filter for box-shadow -->
+  <defs>
+    <!-- 그림자는 dx 2 + 흐림 3σ(=6) 로 최대 8 단위까지 번진다.
+         영역이 좁으면 그림자 끝이 잘리므로 rect(20x20) 기준 +-10 단위를 준다. -->
+    <filter id="boxShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="rgba(0, 0, 0, 0.3)" />
+    </filter>
+  </defs>
+
+  <!-- Background squares
+
+       색은 이 파일에서 정하지 않고 CSS 의 fill 을 상속받는다.
+       (components/common/Logo.tsx 의 Icon 이 theme.color.primary 를 지정)
+
+       예전에는 fill 속성에 "current" 라는 값이 있었다. 유효한 색이 아니라
+       무시되면서 우연히 상속으로 동작하던 것이라 속성을 지웠다.
+       "currentColor" 로 고치면 fill 이 아니라 color(본문 색)를 따라가므로
+       로고 색이 달라진다. -->
+
+  <rect x="25" y="0" width="20" height="20" rx="8" filter="url(#boxShadow)"></rect>
+  <rect x="50" y="0" width="20" height="20" rx="8" filter="url(#boxShadow)"></rect>
+  <rect x="25" y="25" width="20" height="20" rx="8" filter="url(#boxShadow)"></rect>
+  <rect x="50" y="25" width="20" height="20" rx="8" filter="url(#boxShadow)"></rect>
+  <rect x="50" y="50" width="20" height="20" rx="8" filter="url(#boxShadow)"></rect>
 
   <!-- Empty squares -->
-  <rect x="50" y="0" width="20" height="20" fill="#e0f7fa" rx="4"></rect>
-  <rect x="50" y="25" width="20" height="20" fill="#e0f7fa" rx="4"></rect>
-  <rect x="25" y="50" width="20" height="20" fill="#e0f7fa" rx="4"></rect>
-  <rect x="50" y="50" width="20" height="20" fill="#e0f7fa" rx="4"></rect>
+  <rect x="0" y="0" width="20" height="20" fill="#e0f7fa" rx="8" filter="url(#boxShadow)"></rect>
+  <rect x="0" y="25" width="20" height="20" fill="#e0f7fa" rx="8" filter="url(#boxShadow)"></rect>
+  <rect x="0" y="50" width="20" height="20" fill="#e0f7fa" rx="8" filter="url(#boxShadow)"></rect>
+  <rect x="25" y="50" width="20" height="20" fill="#e0f7fa" rx="8" filter="url(#boxShadow)"></rect>
 </svg>

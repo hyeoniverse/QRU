@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# PR 스크린샷 (scripts/pr-screenshots.mjs)
+.screenshots
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +25,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.env
+# firebase init 이 설치하는 에이전트 스킬 (firebase init 으로 언제든 재생성)
+.agents/
+.claude/skills/
+skills-lock.json
