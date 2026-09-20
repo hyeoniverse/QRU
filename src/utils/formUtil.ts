@@ -80,3 +80,15 @@ export const omitKey = <T,>(source: Record<string, T>, key: string): Record<stri
   delete next[key];
   return next;
 };
+
+/** 폼에 나타나는 묶음 이름을 순서대로 모은다. */
+export const collectGroups = (fields: IFormField[]): string[] =>
+  fields.reduce<string[]>((names, field) => {
+    if (field.group && field.group !== names[names.length - 1]) {
+      names.push(field.group);
+    }
+    return names;
+  }, []);
+
+/** 목차에서 해당 묶음으로 건너뛰기 위한 id */
+export const groupAnchorId = (index: number) => `form-group-${index}`;

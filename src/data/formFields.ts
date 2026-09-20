@@ -180,6 +180,7 @@ export const FORM_FIELDS: IFormField[] = [
 /** 사용자가 추가한 항목을 폼 필드로 변환 */
 export const createCustomField = (id: string): IFormField => ({
   id,
+  group: "추가 정보",
   label: "추가 정보",
   type: "custom",
   required: true,

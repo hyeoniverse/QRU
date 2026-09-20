@@ -1,28 +1,18 @@
-import { useState } from "react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import { useQuery, useQueryClient } from "react-query";
+import { useQuery } from "react-query";
 import styled from "styled-components";
-import { FaEye, FaPen } from "react-icons/fa6";
+import { FaChevronRight } from "react-icons/fa6";
 
 import { RootState } from "../store";
-import { getCardPhoto, getPrivateCard, listMyCards } from "../services/card";
+import { listMyCards } from "../services/card";
 import { isFirebaseConfigured } from "../services/firebase";
-import { CardDocument } from "../types/cardType";
-import { CardFormInitial } from "../hooks/useCardForm";
 import { findEntry } from "../utils/cardUtil";
 
-import Button from "../components/common/Button";
+import DeleteCardButton from "../components/card/DeleteCardButton";
 import FirebaseNotice from "../components/common/FirebaseNotice";
 import Loading from "../components/common/Loading";
 import Title from "../components/common/Title";
-import EditCardModal from "../components/mypage/EditCardModal";
-
-/** 수정 화면을 열기 위해 함께 불러와야 하는 것 */
-interface Editing {
-  card: CardDocument;
-  initial: CardFormInitial;
-}
 
 const formatDate = (date: Date | null) =>
   date
@@ -36,50 +26,16 @@ const formatDate = (date: Date | null) =>
 function MyPage() {
   const user = useSelector((state: RootState) => state.auth.user);
   const isAuthLoading = useSelector((state: RootState) => state.auth.isLoading);
-  const queryClient = useQueryClient();
-
-  const [editing, setEditing] = useState<Editing | null>(null);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-
   const {
     data: cards,
     isLoading,
     isError,
+    refetch,
   } = useQuery(
     ["my-cards", user?.uid],
     () => listMyCards(user?.uid as string),
     { enabled: Boolean(user?.uid) && isFirebaseConfigured, retry: false }
   );
-
-  /**
-   * 수정 화면에 필요한 것을 모아서 연다.
-   *
-   * 공개 문서에는 공개 항목만 들어 있어 그대로는 폼을 채울 수 없다.
-   * 입력 원본과 사진을 따로 읽어야 한다.
-   */
-  const handleEdit = async (card: CardDocument) => {
-    setLoadingId(card.id);
-
-    try {
-      const [priv, photo] = await Promise.all([
-        getPrivateCard(card),
-        getCardPhoto(card),
-      ]);
-      if (!priv) return;
-
-      setEditing({
-        card,
-        initial: {
-          values: priv.values,
-          isPublic: priv.isPublic,
-          inShuffle: card.inShuffle,
-          photo,
-        },
-      });
-    } finally {
-      setLoadingId(null);
-    }
-  };
 
   if (!isFirebaseConfigured) {
     return (
@@ -141,28 +97,24 @@ function MyPage() {
 
             return (
               <li className="mypage-item" key={card.id}>
-                <div className="item-summary">
-                  <p className="item-name">{name ?? "이름 비공개"}</p>
-                  {bio && <p className="item-bio">{bio}</p>}
-                  <p className="item-meta">
+                {/* 카드 전체가 하나의 이동 버튼이다. */}
+                <Link className="item-link" to={`/cards/${card.id}`}>
+                  <span className="item-name">{name ?? "이름 비공개"}</span>
+                  {bio && <span className="item-bio">{bio}</span>}
+                  <span className="item-meta">
                     <span>{card.serialNumber}</span>
                     {card.createdAt && <span>{formatDate(card.createdAt)}</span>}
                     <span>{card.inShuffle ? "셔플 노출" : "셔플 제외"}</span>
-                  </p>
-                </div>
-
-                <div className="item-buttons">
-                  <Link to={`/cards/${card.id}`} className="item-link">
-                    <FaEye /> 보기
-                  </Link>
-                  <Button
-                    type="button"
-                    size="small"
-                    disabled={loadingId === card.id}
-                    onClick={() => void handleEdit(card)}
-                  >
-                    <FaPen /> 수정
-                  </Button>
+                  </span>
+                </Link>
+                {/* 링크 위에 놓아, 카드를 눌러 이동하는 것과 섞이지 않게 한다. */}
+                <div className="item-actions">
+                  <DeleteCardButton
+                    card={card}
+                    iconOnly
+                    onDeleted={() => void refetch()}
+                  />
+                  <FaChevronRight className="item-arrow" aria-hidden />
                 </div>
               </li>
             );
@@ -170,18 +122,6 @@ function MyPage() {
         </ul>
       )}
 
-      {editing && (
-        <EditCardModal
-          card={editing.card}
-          initial={editing.initial}
-          onClose={() => setEditing(null)}
-          onChanged={() => {
-            void queryClient.invalidateQueries(["my-cards", user.uid]);
-            void queryClient.invalidateQueries(["card", editing.card.id]);
-            void queryClient.invalidateQueries(["card-photo", editing.card.id]);
-          }}
-        />
-      )}
     </StyledMyPage>
   );
 }
@@ -229,28 +169,68 @@ const StyledMyPage = styled.div`
   }
 
   .mypage-item {
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 1rem;
-    padding: 1.25rem 1.5rem;
+
     border-radius: ${({ theme }) => theme.borderRadius.default};
     background: ${({ theme }) => theme.color.surface};
     box-shadow: ${({ theme }) => theme.shadow.light};
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+
+    &:hover,
+    &:focus-within {
+      transform: translateY(-0.1rem);
+      box-shadow: ${({ theme }) => theme.shadow.default};
+    }
   }
 
-  .item-summary {
-    /* 긴 자기소개가 버튼을 밀어내지 않도록 한다. */
+  .item-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    /* 긴 자기소개가 오른쪽 버튼을 밀어내지 않도록 한다. */
     min-width: 0;
+    padding: 1.25rem 0 1.25rem 1.5rem;
+    color: ${({ theme }) => theme.color.text};
+
+    /*
+     * 카드 어디를 눌러도 명함으로 간다.
+     *
+     * 링크를 카드만큼 키우는 대신 덮개를 깐다. 그래야 삭제 버튼을
+     * 링크 안에 넣지 않고도 카드 전체가 눌린다. (a 안의 button 은
+     * 올바른 마크업이 아니다)
+     */
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: ${({ theme }) => theme.borderRadius.default};
+    }
+
+    &:focus-visible::after {
+      outline: 2px solid ${({ theme }) => theme.color.primary};
+      outline-offset: -2px;
+    }
+  }
+
+  /* 덮개 위로 올려 눌리게 한다. */
+  .item-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
   }
 
   .item-name {
-    margin: 0;
     font-weight: bold;
   }
 
   .item-bio {
-    margin: 0.25rem 0 0;
     font-size: ${({ theme }) => theme.fontSize.small};
     color: ${({ theme }) => theme.color.textSecondary};
     overflow: hidden;
@@ -262,35 +242,14 @@ const StyledMyPage = styled.div`
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
-    margin: 0.5rem 0 0;
+    margin-top: 0.25rem;
     font-size: ${({ theme }) => theme.fontSize.extraSmall};
     color: ${({ theme }) => theme.color.textSecondary};
   }
 
-  .item-buttons {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-shrink: 0;
-  }
-
-  .item-link {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: ${({ theme }) => theme.fontSize.small};
-    color: ${({ theme }) => theme.color.text};
-  }
-
-  @media screen and ${({ theme }) => theme.mediaQuery.mobile} {
-    .mypage-item {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .item-buttons {
-      justify-content: flex-end;
-    }
+  .item-arrow {
+    margin-right: 1.5rem;
+    color: ${({ theme }) => theme.color.textSecondary};
   }
 `;
 

@@ -1,4 +1,4 @@
-import { buildCardFields } from "../data/formFields";
+import { FORM_FIELDS, buildCardFields } from "../data/formFields";
 import { FormValues, FormVisibility, IFormField } from "../types/formType";
 import { SELF_VALUE, selfFieldId, subFieldId, valueFieldId } from "./formUtil";
 
@@ -174,4 +174,62 @@ export const matchesSearchText = (
       normalizeSearchValue(entry.value).includes(needle) ||
       normalizeSearchValue(entry.label).includes(needle)
   );
+};
+
+/** 추가 항목이 묶이는 이름. 폼의 그룹 제목과 같은 자리에 쓴다. */
+const CUSTOM_GROUP = "추가 정보";
+
+/**
+ * 항목 id -> 묶음 이름.
+ *
+ * 폼에서 쓰는 그룹을 그대로 가져온다. 명함을 볼 때도 입력할 때와 같은
+ * 순서로 묶이므로, 만든 사람이 예상한 모습과 어긋나지 않는다.
+ * 하위 항목(생일 등)은 상위의 묶음을 따른다.
+ */
+const buildGroupMap = (): Record<string, string> => {
+  const map: Record<string, string> = {};
+
+  const walk = (fields: IFormField[], group: string, parentId?: string) => {
+    let current = group;
+
+    for (const field of fields) {
+      current = field.group ?? current;
+      const id = parentId ? subFieldId(parentId, field.id) : field.id;
+
+      map[id] = current;
+      // SNS 아이디처럼 값이 하위에 담기는 항목도 같은 묶음에 둔다.
+      if (field.subFields) walk(field.subFields, current, id);
+    }
+  };
+
+  walk(FORM_FIELDS, CUSTOM_GROUP);
+  return map;
+};
+
+const GROUP_BY_ID = buildGroupMap();
+
+/** 명함 본문에서 쓰는 한 묶음 */
+export interface CardEntryGroup {
+  name: string;
+  entries: CardEntry[];
+}
+
+/**
+ * 표시용 항목을 묶음별로 나눈다.
+ *
+ * 항목이 열 개를 넘으면 같은 무게로 늘어놓은 목록은 훑기 어렵다.
+ * 입력할 때와 같은 기준으로 묶어 눈이 쉴 곳을 만든다.
+ */
+export const groupEntries = (entries: CardEntry[]): CardEntryGroup[] => {
+  const groups: CardEntryGroup[] = [];
+
+  for (const entry of entries) {
+    const name = GROUP_BY_ID[entry.id] ?? CUSTOM_GROUP;
+    const last = groups.find((group) => group.name === name);
+
+    if (last) last.entries.push(entry);
+    else groups.push({ name, entries: [entry] });
+  }
+
+  return groups;
 };
