@@ -10,6 +10,7 @@ import {
   query,
   serverTimestamp,
   where,
+  setDoc,
   writeBatch,
 } from "firebase/firestore";
 import { requireDb } from "./firebase";
@@ -78,14 +79,6 @@ export const createCard = async (
   // 둘 중 하나만 저장되는 일이 없도록 한 번에 쓴다.
   const batch = writeBatch(db);
   batch.set(cardRef, publicCard);
-
-  // 일련번호로 찾아올 수 있게 길잡이를 남긴다. 이미 쓰인 번호면
-  // create 가 실패해 명함도 만들어지지 않는다.
-  batch.set(doc(db, SERIAL_COLLECTION, serialNumber), {
-    collection: collectionName,
-    cardId: cardRef.id,
-    uid: input.uid,
-  } satisfies SerialPointer);
   batch.set(doc(cardRef, ...PRIVATE_CARD_PATH), privateCard);
   if (input.photo) {
     batch.set(doc(cardRef, ...PHOTO_PATH), {
@@ -94,6 +87,15 @@ export const createCard = async (
     } satisfies CardPhoto);
   }
   await batch.commit();
+
+  // 길잡이는 명함이 생긴 뒤에 쓴다. 규칙이 명함을 읽어 확인하므로
+  // 같은 배치에 넣으면 그 시점에 명함이 아직 없어 거부된다.
+  await ensureSerialPointer({
+    id: cardRef.id,
+    collection: collectionName,
+    serialNumber,
+    uid: input.uid,
+  });
 
   return { id: cardRef.id, serialNumber };
 };
@@ -384,4 +386,36 @@ export const findCardBySerial = async (value: string): Promise<SerialLookup> => 
       snapshot.data() as Partial<PublicCard>
     ),
   };
+};
+
+/** 길잡이를 만들 때 필요한 것만 추린 형태 */
+type PointerTarget = Pick<
+  CardDocument,
+  "id" | "collection" | "serialNumber" | "uid"
+>;
+
+/**
+ * 일련번호 길잡이가 없으면 만든다.
+ *
+ * 명함을 만든 직후와, 명함을 열어볼 때 부른다. 길잡이가 생기기 전에
+ * 만들어진 명함도 누군가 한 번 열어보면 그때부터 찾을 수 있다.
+ *
+ * 실패해도 명함 자체에는 영향이 없으므로 조용히 넘어간다. 규칙이
+ * 명함을 읽어 확인하므로 엉뚱한 곳을 가리키게 만들 수는 없다.
+ */
+export const ensureSerialPointer = async (card: PointerTarget): Promise<void> => {
+  if (!card.serialNumber) return;
+
+  try {
+    const ref = doc(requireDb(), SERIAL_COLLECTION, card.serialNumber);
+    if ((await getDoc(ref)).exists()) return;
+
+    await setDoc(ref, {
+      collection: card.collection,
+      cardId: card.id,
+      uid: card.uid,
+    } satisfies SerialPointer);
+  } catch (error) {
+    console.warn("Could not write serial pointer:", error);
+  }
 };

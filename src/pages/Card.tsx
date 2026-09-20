@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useQuery, useQueryClient } from "react-query";
@@ -6,7 +6,12 @@ import styled from "styled-components";
 import { FaCircleInfo, FaPen } from "react-icons/fa6";
 
 import { RootState } from "../store";
-import { getCard, getCardPhoto, getPrivateCard } from "../services/card";
+import {
+  ensureSerialPointer,
+  getCard,
+  getCardPhoto,
+  getPrivateCard,
+} from "../services/card";
 import { isFirebaseConfigured } from "../services/firebase";
 import { CardFormInitial } from "../hooks/useCardForm";
 import Button from "../components/common/Button";
@@ -48,6 +53,17 @@ function Card() {
     () => getCardPhoto(card as NonNullable<typeof card>),
     { enabled: Boolean(card?.hasPhoto), retry: false }
   );
+
+  /**
+   * 일련번호로 찾아올 수 있게 길잡이를 챙긴다.
+   *
+   * 길잡이가 생기기 전에 만들어진 명함은 검색되지 않는다. 누군가
+   * 한 번 열어보면 그때 채워지므로 손으로 옮길 필요가 없다.
+   */
+  useEffect(() => {
+    if (!card) return;
+    void ensureSerialPointer(card);
+  }, [card]);
 
   if (!isFirebaseConfigured) {
     return (

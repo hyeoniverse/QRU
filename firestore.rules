@@ -57,6 +57,19 @@ service cloud.firestore {
         && photo.dataUrl.matches('data:image/.*');
     }
 
+    /**
+     * 길잡이가 자기 명함을 가리키는지 확인한다.
+     *
+     * 명함 문서를 직접 읽어 일련번호와 소유자가 맞는지 본다. 이것이
+     * 없으면 남의 일련번호를 엉뚱한 곳으로 돌려놓을 수 있다.
+     */
+    function pointsAtItsCard(serial) {
+      let pointer = request.resource.data;
+      let card = get(/databases/$(database)/documents/$(pointer.collection)/$(pointer.cardId)).data;
+
+      return card.serialNumber == serial && card.uid == pointer.uid;
+    }
+
     function isPrivateCardShape() {
       let card = request.resource.data;
 
@@ -158,11 +171,18 @@ service cloud.firestore {
       allow get: if true;
       allow list: if false;
 
-      // 이미 있는 문서면 create 가 실패하므로 남의 번호를 덮어쓸 수 없다.
+      /*
+       * 이미 있는 문서면 create 가 실패하므로 남의 번호를 덮어쓸 수 없고,
+       * 가리키는 명함이 실제로 그 번호를 달고 있어야 만들 수 있다.
+       *
+       * 명함이 먼저 있어야 하므로 길잡이는 명함을 만든 뒤에 따로 쓴다.
+       * 같은 배치에 넣으면 이 검사 시점에 명함이 아직 없다.
+       */
       allow create: if request.resource.data.keys().hasOnly(['collection', 'cardId', 'uid'])
         && request.resource.data.collection in ['cards', 'guestCards']
         && request.resource.data.cardId is string
-        && request.resource.data.cardId.size() <= 64;
+        && request.resource.data.cardId.size() <= 64
+        && pointsAtItsCard(serial);
 
       allow update: if false;
       // 명함을 지울 때 길잡이도 함께 지운다. 비회원 명함은 지울 수 없다.
