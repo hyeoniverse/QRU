@@ -172,7 +172,15 @@ interface Props {
 }
 
 const HeaderStyle = styled.header<Props>`
+  /*
+   * top 을 적어둔다.
+   *
+   * 빠뜨리면 "원래 흐름상 있었을 자리" 에 고정된다. 지금은 그것이
+   * 0 이라 맞아떨어지지만, 위에 무엇이 하나 끼면 그만큼 내려간다.
+   */
   position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
   height: ${({ theme }) => theme.layout.headerHeight};
   margin: 0 auto;
