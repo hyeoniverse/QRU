@@ -12,6 +12,22 @@ export const CARD_COLLECTION = {
 export type CardCollection =
   (typeof CARD_COLLECTION)[keyof typeof CARD_COLLECTION];
 
+/**
+ * 일련번호로 명함을 찾아가기 위한 길잡이 컬렉션.
+ *
+ * 일련번호 자체가 문서 id 다. 규칙은 질의에 담긴 값을 알 수 없어
+ * serialNumber 로 거르는 목록 조회를 열 수 없으므로, get 한 번으로
+ * 찾아갈 수 있게 따로 둔다.
+ */
+export const SERIAL_COLLECTION = "serials";
+
+export type SerialPointer = {
+  collection: CardCollection;
+  cardId: string;
+  /** 명함을 지울 때 길잡이도 함께 지우기 위한 소유자 */
+  uid: string | null;
+};
+
 /** 비공개 원본이 들어가는 하위 문서 경로 */
 export const PRIVATE_CARD_PATH = ["private", "card"] as const;
 

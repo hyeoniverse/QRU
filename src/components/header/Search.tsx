@@ -71,6 +71,14 @@ function Search({
     };
   }, [onNavigationToggle]);
 
+  /** 검색창에서는 Enter 가 곧 검색이다. 돋보기를 찾아 누르게 두지 않는다. */
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+
+    event.preventDefault();
+    onSearch?.(event.currentTarget.value);
+  };
+
   const handleToggle = (event: React.MouseEvent) => {
     event.preventDefault();
     if (isOpen && inputRef.current?.value) {
@@ -92,6 +100,7 @@ function Search({
         ref={inputRef}
         type="text"
         placeholder={placeholder}
+        onKeyDown={handleKeyDown}
       />
       <Button onMouseDown={handleToggle}>
         <FaSearch />
