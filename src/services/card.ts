@@ -18,6 +18,7 @@ import {
   CardCollection,
   CardDocument,
   CardPhoto,
+  CardUpdate,
   NewCard,
   PHOTO_PATH,
   PRIVATE_CARD_PATH,
@@ -227,4 +228,112 @@ export const getCardPhoto = async (card: CardDocument): Promise<string | null> =
 
   const { dataUrl } = snapshot.data() as Partial<CardPhoto>;
   return typeof dataUrl === "string" && dataUrl ? dataUrl : null;
+};
+
+/**
+ * 로그인한 사용자가 만든 명함을 모두 가져온다.
+ *
+ * 규칙이 resource.data.uid 를 보기 때문에 질의에도 같은 조건이 있어야
+ * 한다. 조건이 없으면 Firestore 가 질의 자체를 거부한다.
+ *
+ * 정렬은 화면에서 한다. uid 로 거르면서 createdAt 으로 정렬하면
+ * 복합 색인이 필요해지는데, 한 사람의 명함은 많지 않아 그만한 값이 없다.
+ */
+export const listMyCards = async (uid: string): Promise<CardDocument[]> => {
+  const snapshot = await getDocs(
+    query(
+      collection(requireDb(), CARD_COLLECTION.member),
+      where("uid", "==", uid)
+    )
+  );
+
+  return snapshot.docs
+    .map((found) =>
+      toCardDocument(
+        found.id,
+        CARD_COLLECTION.member,
+        found.data() as Partial<PublicCard>
+      )
+    )
+    .sort(
+      (a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0)
+    );
+};
+
+/** 수정 화면을 채우기 위해 입력 원본을 읽는다. 소유자만 읽을 수 있다. */
+export const getPrivateCard = async (
+  card: CardDocument
+): Promise<PrivateCard | null> => {
+  const snapshot = await getDoc(
+    doc(requireDb(), card.collection, card.id, ...PRIVATE_CARD_PATH)
+  );
+  if (!snapshot.exists()) return null;
+
+  const data = snapshot.data() as Partial<PrivateCard>;
+
+  return {
+    uid: data.uid ?? null,
+    values: data.values ?? {},
+    isPublic: data.isPublic ?? {},
+  };
+};
+
+/**
+ * 명함을 수정한다.
+ *
+ * 공개 문서는 바뀌는 필드만 건드린다. createdAt 은 서버가 찍은
+ * Timestamp 라 Date 로 바꿨다가 되돌리면 나노초가 잘려 규칙의
+ * "그대로인지" 검사를 통과하지 못한다. 아예 손대지 않는 편이 안전하다.
+ */
+export const updateCard = async (
+  card: CardDocument,
+  input: CardUpdate
+): Promise<void> => {
+  const db = requireDb();
+  const cardRef = doc(db, card.collection, card.id);
+  const entries: CardEntry[] = toCardEntries(input.values, input.isPublic);
+
+  const batch = writeBatch(db);
+
+  batch.update(cardRef, {
+    entries,
+    search: createSearchIndex(entries),
+    inShuffle: input.inShuffle,
+    hasPhoto: input.photo !== null,
+  });
+
+  // 비밀번호는 비회원만 갖는데 수정은 회원만 할 수 있다. 그래서 통째로 쓴다.
+  batch.set(doc(cardRef, ...PRIVATE_CARD_PATH), {
+    uid: card.uid,
+    values: input.values,
+    isPublic: input.isPublic,
+  } satisfies PrivateCard);
+
+  const photoRef = doc(cardRef, ...PHOTO_PATH);
+  if (input.photo !== null) {
+    batch.set(photoRef, { uid: card.uid, dataUrl: input.photo } satisfies CardPhoto);
+  } else if (card.hasPhoto) {
+    batch.delete(photoRef);
+  }
+
+  await batch.commit();
+};
+
+/**
+ * 명함을 지운다.
+ *
+ * Firestore 는 하위 문서를 따라 지워주지 않는다. 공개 문서만 지우면
+ * 원본과 사진이 주인 없이 남으므로 같은 배치로 함께 지운다.
+ */
+export const deleteCard = async (card: CardDocument): Promise<void> => {
+  const db = requireDb();
+  const cardRef = doc(db, card.collection, card.id);
+
+  const batch = writeBatch(db);
+  batch.delete(doc(cardRef, ...PRIVATE_CARD_PATH));
+  // 없는 문서를 지우려 하면 resource 가 비어 규칙 검사에서 막힌다.
+  if (card.hasPhoto) batch.delete(doc(cardRef, ...PHOTO_PATH));
+  batch.delete(cardRef);
+
+  await batch.commit();
 };

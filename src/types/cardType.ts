@@ -70,6 +70,20 @@ export type CardDocument = Omit<PublicCard, "createdAt"> & {
   collection: CardCollection;
 };
 
+/**
+ * 명함 수정 입력.
+ *
+ * 일련번호와 만든 시각, 소유자는 바뀌지 않는다. 이미 공유된 값이라
+ * 규칙에서도 그대로인지 확인한다.
+ */
+export type CardUpdate = {
+  values: FormValues;
+  isPublic: FormVisibility;
+  inShuffle: boolean;
+  /** 줄여서 담은 JPEG 데이터 URL. null 이면 사진을 지운다. */
+  photo: string | null;
+};
+
 /** 명함 생성 입력 */
 export type NewCard = {
   values: FormValues;
