@@ -4,8 +4,9 @@ export const useResponsive = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState<boolean>(false);
 
-  const toggleSearch = () => {
-    setIsSearchOpen((prev) => !prev);
+  /** 값을 주면 그대로 맞추고, 없으면 뒤집는다. */
+  const toggleSearch = (open?: boolean) => {
+    setIsSearchOpen((prev) => open ?? !prev);
   };
 
   useEffect(() => {

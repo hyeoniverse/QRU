@@ -29,6 +29,28 @@ export const createSerialNumber = (): string => {
   ].join("-");
 };
 
+/**
+ * 사람이 옮겨 적은 일련번호를 저장된 형태로 되돌린다.
+ *
+ * 소문자로 적거나 붙임표를 빼먹는 일이 흔하다. Crockford Base32 는
+ * 헷갈리기 쉬운 글자를 아예 쓰지 않으므로, O 는 0 으로 I 와 L 은 1 로
+ * 되돌려도 다른 번호와 부딪히지 않는다.
+ */
+export const normalizeSerial = (value: string): string => {
+  const cleaned = value
+    .toUpperCase()
+    .replace(/O/g, "0")
+    .replace(/[IL]/g, "1")
+    .replace(/[^0-9A-Z]/g, "");
+
+  if (cleaned.length !== SERIAL_LENGTH) return "";
+
+  return [
+    cleaned.slice(0, SERIAL_GROUP_SIZE),
+    cleaned.slice(SERIAL_GROUP_SIZE),
+  ].join("-");
+};
+
 /** select 에 저장된 값을 사람이 읽는 문자열로 바꾼다. */
 const resolveChoice = (
   field: IFormField,

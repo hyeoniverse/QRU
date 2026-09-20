@@ -1,9 +1,11 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "../../store";
 import { login, logout } from "../../store/slices/authSlice";
 import { addToast } from "../../store/slices/toastSlice";
 import { isFirebaseConfigured } from "../../services/firebase";
+import { findCardBySerial } from "../../services/card";
 import { useResponsive } from "../../hooks/useResponsive";
 
 import styled from "styled-components";
@@ -23,6 +25,59 @@ function Header() {
   const { user, isLoading } = useSelector((state: RootState) => state.auth);
   const isLoggedIn = !!user;
   const { isSearchOpen, isMobileOpen, toggleSearch } = useResponsive();
+  const navigate = useNavigate();
+  const [isSearching, setIsSearching] = useState(false);
+
+  /** 일련번호로 명함을 찾아 그 화면으로 보낸다. */
+  const handleSearch = async (query: string) => {
+    if (!query.trim() || isSearching) return;
+
+    if (!isFirebaseConfigured) {
+      dispatch(
+        addToast({
+          type: "error",
+          message: "Firebase 설정이 없어 명함을 찾을 수 없습니다.",
+        })
+      );
+      return;
+    }
+
+    setIsSearching(true);
+
+    try {
+      const result = await findCardBySerial(query);
+
+      if (result.status === "invalid") {
+        dispatch(
+          addToast({
+            type: "error",
+            message: "일련번호는 7K3FM-9P2XR 처럼 열 글자입니다.",
+          })
+        );
+        return;
+      }
+
+      if (result.status === "missing") {
+        dispatch(
+          addToast({
+            type: "error",
+            message: "그 일련번호의 명함을 찾지 못했습니다.",
+          })
+        );
+        return;
+      }
+
+      toggleSearch(false);
+      navigate("/cards/" + result.card.id);
+    } catch (error) {
+      console.error("Error finding card:", error);
+      dispatch(
+        addToast({ type: "error", message: "명함을 찾는 중 오류가 발생했습니다." })
+      );
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const handleAuthClick = () => {
     // 설정이 없으면 로그인 창이 뜨지 않으므로 이유를 알려준다.
@@ -54,6 +109,7 @@ function Header() {
         isOpen={isSearchOpen}
         onToggle={toggleSearch}
         placeholder="찾고싶은 명함의 일련번호를 입력하세요"
+        onSearch={(query) => void handleSearch(query)}
       />
       <div className="right-section">
         {isLoading ? (

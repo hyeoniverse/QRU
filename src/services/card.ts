@@ -10,6 +10,7 @@ import {
   query,
   serverTimestamp,
   where,
+  setDoc,
   writeBatch,
 } from "firebase/firestore";
 import { requireDb } from "./firebase";
@@ -24,6 +25,8 @@ import {
   PRIVATE_CARD_PATH,
   PrivateCard,
   PublicCard,
+  SERIAL_COLLECTION,
+  SerialPointer,
 } from "../types/cardType";
 import {
   CardEntry,
@@ -31,6 +34,7 @@ import {
   createSerialNumber,
   matchesSearchText,
   normalizeSearchValue,
+  normalizeSerial,
   toCardEntries,
 } from "../utils/cardUtil";
 
@@ -83,6 +87,15 @@ export const createCard = async (
     } satisfies CardPhoto);
   }
   await batch.commit();
+
+  // 길잡이는 명함이 생긴 뒤에 쓴다. 규칙이 명함을 읽어 확인하므로
+  // 같은 배치에 넣으면 그 시점에 명함이 아직 없어 거부된다.
+  await ensureSerialPointer({
+    id: cardRef.id,
+    collection: collectionName,
+    serialNumber,
+    uid: input.uid,
+  });
 
   return { id: cardRef.id, serialNumber };
 };
@@ -331,9 +344,78 @@ export const deleteCard = async (card: CardDocument): Promise<void> => {
 
   const batch = writeBatch(db);
   batch.delete(doc(cardRef, ...PRIVATE_CARD_PATH));
+  // 길잡이를 남겨두면 없는 명함을 가리킨다.
+  if (card.serialNumber) batch.delete(doc(db, SERIAL_COLLECTION, card.serialNumber));
   // 없는 문서를 지우려 하면 resource 가 비어 규칙 검사에서 막힌다.
   if (card.hasPhoto) batch.delete(doc(cardRef, ...PHOTO_PATH));
   batch.delete(cardRef);
 
   await batch.commit();
+};
+
+/** 일련번호로 찾은 결과. 번호 형식이 틀렸는지, 없는 번호인지 구분한다. */
+export type SerialLookup =
+  | { status: "found"; card: CardDocument }
+  | { status: "invalid" }
+  | { status: "missing" };
+
+/**
+ * 일련번호로 명함을 찾는다.
+ *
+ * 길잡이 문서를 한 번 읽어 어느 컬렉션의 어느 문서인지 알아낸 뒤
+ * 그 명함을 읽는다. 목록 조회를 열지 않고도 찾아갈 수 있다.
+ */
+export const findCardBySerial = async (value: string): Promise<SerialLookup> => {
+  const serialNumber = normalizeSerial(value);
+  if (!serialNumber) return { status: "invalid" };
+
+  const db = requireDb();
+  const pointer = await getDoc(doc(db, SERIAL_COLLECTION, serialNumber));
+  if (!pointer.exists()) return { status: "missing" };
+
+  const { collection: collectionName, cardId } = pointer.data() as SerialPointer;
+  const snapshot = await getDoc(doc(db, collectionName, cardId));
+  // 명함은 지웠는데 길잡이만 남은 경우도 없는 것으로 본다.
+  if (!snapshot.exists()) return { status: "missing" };
+
+  return {
+    status: "found",
+    card: toCardDocument(
+      snapshot.id,
+      collectionName,
+      snapshot.data() as Partial<PublicCard>
+    ),
+  };
+};
+
+/** 길잡이를 만들 때 필요한 것만 추린 형태 */
+type PointerTarget = Pick<
+  CardDocument,
+  "id" | "collection" | "serialNumber" | "uid"
+>;
+
+/**
+ * 일련번호 길잡이가 없으면 만든다.
+ *
+ * 명함을 만든 직후와, 명함을 열어볼 때 부른다. 길잡이가 생기기 전에
+ * 만들어진 명함도 누군가 한 번 열어보면 그때부터 찾을 수 있다.
+ *
+ * 실패해도 명함 자체에는 영향이 없으므로 조용히 넘어간다. 규칙이
+ * 명함을 읽어 확인하므로 엉뚱한 곳을 가리키게 만들 수는 없다.
+ */
+export const ensureSerialPointer = async (card: PointerTarget): Promise<void> => {
+  if (!card.serialNumber) return;
+
+  try {
+    const ref = doc(requireDb(), SERIAL_COLLECTION, card.serialNumber);
+    if ((await getDoc(ref)).exists()) return;
+
+    await setDoc(ref, {
+      collection: card.collection,
+      cardId: card.id,
+      uid: card.uid,
+    } satisfies SerialPointer);
+  } catch (error) {
+    console.warn("Could not write serial pointer:", error);
+  }
 };
