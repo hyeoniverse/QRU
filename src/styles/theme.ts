@@ -80,6 +80,8 @@ export interface Theme {
     [key in Shadow]: string;
   };
   layout: {
+    /** 고정 헤더의 높이. 헤더 아래에 무언가를 놓을 때 기준이 된다. */
+    headerHeight: string;
     width: {
       [key in LayoutWidth]: string;
     };
@@ -201,6 +203,7 @@ export const lightTheme: Theme = {
     none: "none",
   },
   layout: {
+    headerHeight: "4rem",
     width: {
       large: "1020px",
       medium: "760px",

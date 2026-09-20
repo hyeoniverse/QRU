@@ -105,7 +105,7 @@ interface Props {
 const HeaderStyle = styled.header<Props>`
   position: fixed;
   width: 100%;
-  height: 4rem;
+  height: ${({ theme }) => theme.layout.headerHeight};
   margin: 0 auto;
   padding: 1rem 2rem;
   display: flex;
