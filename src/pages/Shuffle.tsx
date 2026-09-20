@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { FaShuffle } from "react-icons/fa6";
 
 import { FORM_FIELDS } from "../data/formFields";
 import {
   CardSearchCriteria,
-  fetchRandomCard,
-  getCardPhoto,
+  fetchRandomCards,
 } from "../services/card";
 import { isFirebaseConfigured } from "../services/firebase";
 import { CardDocument } from "../types/cardType";
@@ -21,7 +19,7 @@ import InputSelect from "../components/common/InputSelect";
 import InputText from "../components/common/InputText";
 import Loading from "../components/common/Loading";
 import Title from "../components/common/Title";
-import CardPreview from "../components/card/CardPreview";
+import ShuffleCard from "../components/card/ShuffleCard";
 
 const ALL = "";
 
@@ -59,37 +57,29 @@ const FILTERS = FORM_FIELDS.filter(
 type Status = "idle" | "loading" | "empty" | "error";
 
 /** 검색어를 한 글자씩 칠 때마다 질의하지 않도록 기다리는 시간 */
+/** 한 번에 보여줄 명함 수 */
+const SHUFFLE_COUNT = 5;
+
 const SEARCH_DEBOUNCE_MS = 300;
 
 function Shuffle() {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [text, setText] = useState("");
-  const [card, setCard] = useState<CardDocument | null>(null);
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [cards, setCards] = useState<CardDocument[]>([]);
   const [status, setStatus] = useState<Status>("idle");
 
-  // 직전에 본 명함을 피하려고 들고 있는다. 렌더링과 무관하므로 ref 를 쓴다.
-  const lastIdRef = useRef<string | undefined>(undefined);
+  // 직전에 보여준 명함을 뒤로 미루려고 들고 있다. 렌더링과 무관해 ref 를 쓴다.
+  const lastIdsRef = useRef<string[]>([]);
 
   const shuffle = useCallback(async (criteria: CardSearchCriteria) => {
     setStatus("loading");
 
     try {
-      const found = await fetchRandomCard(criteria, lastIdRef.current);
+      const found = await fetchRandomCards(criteria, SHUFFLE_COUNT, lastIdsRef.current);
 
-      if (!found) {
-        setCard(null);
-        setPhoto(null);
-        setStatus("empty");
-        return;
-      }
-
-      lastIdRef.current = found.id;
-      setCard(found);
-      setStatus("idle");
-
-      // 사진은 보여줄 한 장에 대해서만 읽는다.
-      setPhoto(found.hasPhoto ? await getCardPhoto(found) : null);
+      lastIdsRef.current = found.map((item) => item.id);
+      setCards(found);
+      setStatus(found.length === 0 ? "empty" : "idle");
     } catch (error) {
       console.error("Error shuffling cards:", error);
       setStatus("error");
@@ -102,7 +92,7 @@ function Shuffle() {
     if (!isFirebaseConfigured) return;
 
     const timer = setTimeout(() => {
-      lastIdRef.current = undefined;
+      lastIdsRef.current = [];
       void shuffle({ filters, text });
     }, SEARCH_DEBOUNCE_MS);
 
@@ -132,7 +122,7 @@ function Shuffle() {
       <header className="shuffle-header">
         <Title size="medium">명함 찾기</Title>
         <p className="shuffle-description">
-          랜덤 셔플에 노출을 허용한 명함 중 한 장을 보여줍니다.
+          랜덤 셔플에 노출을 허용한 명함 중 몇 장을 골라 보여줍니다.
         </p>
       </header>
 
@@ -194,10 +184,12 @@ function Shuffle() {
           </p>
         )}
 
-        {status === "idle" && card && (
-          <Link className="shuffle-card" to={`/cards/${card.id}`}>
-            <CardPreview entries={card.entries} photo={photo} />
-          </Link>
+        {status === "idle" && cards.length > 0 && (
+          <ul className="shuffle-list">
+            {cards.map((found) => (
+              <ShuffleCard key={found.id} card={found} />
+            ))}
+          </ul>
         )}
       </div>
 
@@ -276,8 +268,18 @@ const StyledShuffle = styled.div`
     align-items: center;
     justify-content: center;
     width: 100%;
-    /* 한 장씩 넘겨보는 자리라 높이가 들쭉날쭉하면 눈이 따라가기 힘들다. */
+    /* 결과가 없을 때도 자리가 무너지지 않게 최소 높이를 둔다. */
     min-height: 11rem;
+  }
+
+  .shuffle-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
   /*
