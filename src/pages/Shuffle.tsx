@@ -21,7 +21,7 @@ import InputSelect from "../components/common/InputSelect";
 import InputText from "../components/common/InputText";
 import Loading from "../components/common/Loading";
 import Title from "../components/common/Title";
-import CardView from "../components/card/CardView";
+import CardPreview from "../components/card/CardPreview";
 
 const ALL = "";
 
@@ -196,20 +196,23 @@ function Shuffle() {
 
         {status === "idle" && card && (
           <Link className="shuffle-card" to={`/cards/${card.id}`}>
-            <CardView entries={card.entries} photo={photo} />
+            <CardPreview entries={card.entries} photo={photo} />
           </Link>
         )}
       </div>
 
-      <Button
-        type="button"
-        size="large"
-        scheme="primary"
-        disabled={status === "loading"}
-        onClick={() => void shuffle({ filters, text })}
-      >
-        <FaShuffle /> 다시 셔플
-      </Button>
+      {/* 이 화면에서 가장 많이 누르는 것이라 늘 손 닿는 곳에 둔다. */}
+      <div className="shuffle-action">
+        <Button
+          type="button"
+          size="large"
+          scheme="primary"
+          disabled={status === "loading"}
+          onClick={() => void shuffle({ filters, text })}
+        >
+          <FaShuffle /> 다시 셔플
+        </Button>
+      </div>
     </StyledShuffle>
   );
 }
@@ -271,7 +274,29 @@ const StyledShuffle = styled.div`
     align-items: center;
     justify-content: center;
     width: 100%;
-    min-height: 16rem;
+    /* 한 장씩 넘겨보는 자리라 높이가 들쭉날쭉하면 눈이 따라가기 힘들다. */
+    min-height: 11rem;
+  }
+
+  /*
+   * 셔플 버튼은 화면 아래에 떠 있다.
+   *
+   * 이 화면에서 가장 많이 누르는 것이라, 아래로 내려가도 늘 손 닿는
+   * 곳에 있어야 한다. 대신 아래쪽에 그만큼 자리를 비워 마지막 내용을
+   * 가리지 않게 한다.
+   */
+  padding-bottom: 5.5rem;
+
+  .shuffle-action {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+
+    button {
+      box-shadow: ${({ theme }) => theme.shadow.strong};
+    }
   }
 
   .shuffle-message {
@@ -284,15 +309,21 @@ const StyledShuffle = styled.div`
   .shuffle-card {
     display: block;
     width: 100%;
-    padding: 2.5rem;
+    padding: 1.5rem 1.75rem;
 
     background: ${({ theme }) => theme.color.surface};
     border-radius: ${({ theme }) => theme.borderRadius.default};
-    box-shadow: ${({ theme }) => theme.shadow.strong};
+    /*
+     * 평소에는 바닥에 놓여 있고, 가리켰을 때 떠오른다.
+     * 반대로 두면 기본 상태가 이미 떠 있는 것처럼 보이고,
+     * 가리키면 오히려 가라앉는 것처럼 보인다.
+     */
+    box-shadow: ${({ theme }) => theme.shadow.light};
     color: inherit;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 
-    &:hover {
+    &:hover,
+    &:focus-visible {
       transform: translateY(-0.2rem);
       box-shadow: ${({ theme }) => theme.shadow.hover};
     }
