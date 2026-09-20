@@ -1,9 +1,8 @@
 import { useRef } from "react";
-import { useDispatch } from "react-redux";
 import styled from "styled-components";
 import { QRCodeCanvas } from "qrcode.react";
-import { FaDownload, FaLink } from "react-icons/fa";
-import { addToast } from "../../store/slices/toastSlice";
+import { FaCheck, FaDownload, FaLink } from "react-icons/fa";
+import { useCopy } from "../../hooks/useCopy";
 import Button from "../common/Button";
 
 interface Props {
@@ -18,8 +17,10 @@ const QR_BACKGROUND = "#ffffff";
 const QR_FOREGROUND = "#213c48";
 
 function CardShare({ url, serialNumber }: Props) {
-  const dispatch = useDispatch();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { copy, isCopied } = useCopy(
+    "링크 복사에 실패했습니다. 주소창의 URL 을 사용해주세요."
+  );
 
   const handleDownload = () => {
     const canvas = canvasRef.current;
@@ -31,17 +32,6 @@ function CardShare({ url, serialNumber }: Props) {
     link.click();
   };
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      dispatch(addToast({ type: "success", message: "명함 링크를 복사했습니다." }));
-    } catch {
-      // 보안 컨텍스트가 아니거나 권한이 없으면 클립보드를 쓸 수 없다.
-      dispatch(
-        addToast({ type: "error", message: "링크 복사에 실패했습니다. 주소창의 URL 을 사용해주세요." })
-      );
-    }
-  };
 
   return (
     <StyledCardShare>
@@ -61,8 +51,12 @@ function CardShare({ url, serialNumber }: Props) {
         <Button type="button" size="small" onClick={handleDownload}>
           <FaDownload /> QR 저장
         </Button>
-        <Button type="button" size="small" onClick={handleCopy}>
-          <FaLink /> 링크 복사
+        <Button
+          type="button"
+          size="small"
+          onClick={() => void copy(url, "명함 링크를 복사했습니다.")}
+        >
+          {isCopied ? <FaCheck /> : <FaLink />} 링크 복사
         </Button>
       </div>
     </StyledCardShare>
