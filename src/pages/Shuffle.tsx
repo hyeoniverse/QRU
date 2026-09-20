@@ -161,16 +161,21 @@ function Shuffle() {
           </div>
         ))}
 
-        {hasCriteria && (
-          <Button
-            type="button"
-            size="small"
-            className="reset-criteria"
-            onClick={resetCriteria}
-          >
-            조건 초기화
-          </Button>
-        )}
+        {/*
+          * 조건이 없을 때도 자리를 지킨다.
+          *
+          * 글자를 치는 순간 버튼이 나타나면 줄 전체가 다시 배치되어
+          * 검색창 폭이 바뀐다. 쓰는 중에 입력칸이 움직이면 거슬린다.
+          */}
+        <Button
+          type="button"
+          size="small"
+          className="reset-criteria"
+          disabled={!hasCriteria}
+          onClick={resetCriteria}
+        >
+          조건 초기화
+        </Button>
       </div>
 
       <div className="shuffle-result">
