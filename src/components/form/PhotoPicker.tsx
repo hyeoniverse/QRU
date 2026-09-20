@@ -2,11 +2,9 @@ import { useRef, useState } from "react";
 import styled from "styled-components";
 import { FaCamera, FaPlus, FaTrash } from "react-icons/fa";
 
-import {
-  ACCEPTED_IMAGE_TYPES,
-  fileToPhotoDataUrl,
-} from "../../utils/imageUtil";
+import { ACCEPTED_IMAGE_TYPES, fileToDataUrl } from "../../utils/imageUtil";
 import Loading from "../common/Loading";
+import PhotoEditor from "./PhotoEditor";
 
 interface Props {
   /** 줄여서 담은 JPEG 데이터 URL. 없으면 사진 없음 */
@@ -16,14 +14,17 @@ interface Props {
 }
 
 /**
- * 명함에 넣을 사진을 고른다. 고르는 즉시 줄여서 데이터 URL 로 들고 있는다.
+ * 명함에 넣을 사진을 고르고 다듬는다.
  *
- * 원형 미리보기 자체가 선택 버튼이고, 오른쪽 위 배지가 상태를 알려준다.
- * 사진이 없으면 + 로 추가를 유도하고, 있으면 휴지통으로 삭제를 받는다.
+ * 원형 미리보기 자체가 버튼이다. 사진이 없으면 고르러 가고, 있으면
+ * 편집기를 열어 위치와 크기를 다시 잡는다. 오른쪽 위 배지가 상태를
+ * 알려준다. 비어 있으면 +, 채워져 있으면 삭제다.
  */
 function PhotoPicker({ value, onChange, onError }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isReading, setIsReading] = useState(false);
+  /** 편집기에 올려둔 사진. 열려 있는 동안만 들고 있는다. */
+  const [editing, setEditing] = useState<string | null>(null);
 
   const handleSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const [file] = event.target.files ?? [];
@@ -31,20 +32,22 @@ function PhotoPicker({ value, onChange, onError }: Props) {
     event.target.value = "";
     if (!file) return;
 
-    setIsProcessing(true);
+    setIsReading(true);
 
     try {
-      onChange(await fileToPhotoDataUrl(file));
+      setEditing(await fileToDataUrl(file));
     } catch (error) {
       console.error("Error reading photo:", error);
-      onError(
-        error instanceof Error && error.name === "PhotoTooLargeError"
-          ? error.message
-          : "사진을 불러오지 못했습니다. 다른 이미지를 사용해주세요."
-      );
+      onError("사진을 불러오지 못했습니다. 다른 이미지를 사용해주세요.");
     } finally {
-      setIsProcessing(false);
+      setIsReading(false);
     }
+  };
+
+  // 이미 넣어둔 사진은 그것을 그대로 편집기에 올린다.
+  const handleOpen = () => {
+    if (value) setEditing(value);
+    else inputRef.current?.click();
   };
 
   return (
@@ -52,12 +55,12 @@ function PhotoPicker({ value, onChange, onError }: Props) {
       <button
         type="button"
         className="photo-button"
-        disabled={isProcessing}
-        title={value ? "사진 변경" : "사진 추가"}
-        aria-label={value ? "사진 변경" : "사진 추가"}
-        onClick={() => inputRef.current?.click()}
+        disabled={isReading}
+        title={value ? "사진 편집" : "사진 추가"}
+        aria-label={value ? "사진 편집" : "사진 추가"}
+        onClick={handleOpen}
       >
-        {isProcessing ? (
+        {isReading ? (
           <Loading size="medium" />
         ) : value ? (
           <img src={value} alt="" />
@@ -89,6 +92,19 @@ function PhotoPicker({ value, onChange, onError }: Props) {
         hidden
         onChange={handleSelect}
       />
+
+      {editing && (
+        <PhotoEditor
+          source={editing}
+          onApply={(photo) => {
+            onChange(photo);
+            setEditing(null);
+          }}
+          onCancel={() => setEditing(null)}
+          onPickAnother={() => inputRef.current?.click()}
+          onError={onError}
+        />
+      )}
     </StyledPhotoPicker>
   );
 }

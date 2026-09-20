@@ -24,56 +24,73 @@ export class PhotoTooLargeError extends Error {
   }
 }
 
-/** 긴 변이 MAX_EDGE 를 넘지 않도록 줄인 크기 */
-const fitSize = (width: number, height: number) => {
-  const scale = Math.min(1, MAX_EDGE / Math.max(width, height));
-  return {
-    width: Math.max(1, Math.round(width * scale)),
-    height: Math.max(1, Math.round(height * scale)),
-  };
-};
+/** 편집기에서 잘라낼 영역. 원본 이미지의 픽셀 좌표 기준인 정사각형이다. */
+export interface CropRect {
+  x: number;
+  y: number;
+  size: number;
+}
+
+/** 파일을 화면에 띄울 수 있는 데이터 URL 로 읽는다. */
+export const fileToDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error ?? new Error("읽기 실패"));
+    reader.readAsDataURL(file);
+  });
+
+/** 데이터 URL 을 그릴 수 있는 이미지로 만든다. */
+export const loadImage = (src: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("이미지를 불러오지 못했습니다."));
+    image.src = src;
+  });
 
 /**
- * 이미지 파일을 정사각형 JPEG 데이터 URL 로 바꾼다.
+ * 고른 영역을 정사각형 JPEG 데이터 URL 로 만든다.
  *
- * 명함에서는 원형으로 보여주므로 가운데를 기준으로 잘라낸다.
+ * 명함에서는 원형으로 보여주므로 정사각형이면 충분하다.
  * JPEG 은 투명을 표현하지 못해 배경을 흰색으로 채운다.
  */
-export const fileToPhotoDataUrl = async (file: File): Promise<string> => {
-  const bitmap = await createImageBitmap(file);
+export const cropToDataUrl = async (
+  src: string,
+  rect: CropRect
+): Promise<string> => {
+  const image = await loadImage(src);
 
-  try {
-    const edge = Math.min(bitmap.width, bitmap.height);
-    const { width } = fitSize(edge, edge);
+  // 잘라낸 영역이 작으면 그만큼만 쓴다. 없는 화소를 늘려봐야 용량만 는다.
+  const edge = Math.max(1, Math.round(Math.min(MAX_EDGE, rect.size)));
 
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = width;
+  const canvas = document.createElement("canvas");
+  canvas.width = edge;
+  canvas.height = edge;
 
-    const context = canvas.getContext("2d");
-    if (!context) throw new PhotoTooLargeError();
+  const context = canvas.getContext("2d");
+  if (!context) throw new PhotoTooLargeError();
 
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, width, width);
-    context.drawImage(
-      bitmap,
-      (bitmap.width - edge) / 2,
-      (bitmap.height - edge) / 2,
-      edge,
-      edge,
-      0,
-      0,
-      width,
-      width
-    );
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, edge, edge);
+  context.drawImage(
+    image,
+    rect.x,
+    rect.y,
+    rect.size,
+    rect.size,
+    0,
+    0,
+    edge,
+    edge
+  );
 
-    for (const quality of QUALITY_STEPS) {
-      const dataUrl = canvas.toDataURL("image/jpeg", quality);
-      if (dataUrl.length <= MAX_PHOTO_LENGTH) return dataUrl;
-    }
-
-    throw new PhotoTooLargeError();
-  } finally {
-    bitmap.close();
+  for (const quality of QUALITY_STEPS) {
+    const dataUrl = canvas.toDataURL("image/jpeg", quality);
+    if (dataUrl.length <= MAX_PHOTO_LENGTH) return dataUrl;
   }
+
+  throw new PhotoTooLargeError();
 };
