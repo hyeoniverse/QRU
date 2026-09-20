@@ -208,11 +208,11 @@ function Shuffle() {
           size="medium"
           scheme="primary"
           disabled={status === "loading"}
+          title="다시 셔플"
           aria-label="다시 셔플"
           onClick={() => void shuffle({ filters, text })}
         >
           <FaShuffle />
-          <span>셔플</span>
         </Button>
       </div>
     </StyledShuffle>
@@ -295,9 +295,17 @@ const StyledShuffle = styled.div`
     bottom: 1.5rem;
     z-index: 10;
 
+    /* 아이콘 하나만 담은 동그란 버튼. 글자가 없어 이름을 따로 둔다. */
     button {
-      gap: 0.5rem;
+      width: 3.5rem;
+      height: 3.5rem;
+      padding: 0;
+      border-radius: 50%;
       box-shadow: ${({ theme }) => theme.shadow.strong};
+
+      svg {
+        font-size: ${({ theme }) => theme.fontSize.medium};
+      }
     }
   }
 
@@ -305,6 +313,11 @@ const StyledShuffle = styled.div`
     .shuffle-action {
       right: 1rem;
       bottom: 1rem;
+
+      button {
+        width: 3.25rem;
+        height: 3.25rem;
+      }
     }
   }
 
