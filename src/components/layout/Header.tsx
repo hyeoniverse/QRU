@@ -18,12 +18,18 @@ import ThemeSwitcher from "../header/ThemeSwitcher";
 import Drawer from "../header/Drawer";
 import Search from "../header/Search";
 import UserAvatar from "../header/UserAvatar";
-import { FaGoogle } from "react-icons/fa";
+import { FaGoogle, FaRegAddressCard } from "react-icons/fa";
 
 function Header() {
   const dispatch = useDispatch<AppDispatch>();
   const { user, isLoading } = useSelector((state: RootState) => state.auth);
-  const isLoggedIn = !!user;
+
+  /*
+   * 계정 없이 쓰는 사람도 uid 를 갖는다. 명함의 소유자를 가리기 위한
+   * 것이지 로그인한 것은 아니므로, 화면에서는 로그인으로 치지 않는다.
+   */
+  const isLoggedIn = Boolean(user) && !user?.isAnonymous;
+  const hasOwnCards = Boolean(user?.isAnonymous);
   const { isSearchOpen, isMobileOpen, toggleSearch } = useResponsive();
   const navigate = useNavigate();
   const [isSearching, setIsSearching] = useState(false);
@@ -140,6 +146,13 @@ function Header() {
               </Dropdown>
             ) : (
               <>
+                {/* 계정 없이 만든 명함도 관리할 수 있어야 한다. */}
+                {hasOwnCards && (
+                  <Link to="/mypage" className="mypage-link" title="내 명함">
+                    <FaRegAddressCard />
+                    {!isMobileOpen && "내 명함"}
+                  </Link>
+                )}
                 <Button onClick={handleAuthClick}>
                   <FaGoogle />
                   {!isMobileOpen && "로그인"}
@@ -212,6 +225,16 @@ const HeaderStyle = styled.header<Props>`
   .right-section {
     justify-content: flex-end;
     transform-origin: right;
+
+    .mypage-link {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 0.75rem;
+      color: ${({ theme }) => theme.color.text};
+      font-size: ${({ theme }) => theme.fontSize.small};
+      white-space: nowrap;
+    }
 
     .userCircle {
       /*

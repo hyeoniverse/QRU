@@ -73,7 +73,6 @@ export const createCard = async (
     uid: input.uid,
     values: input.values,
     isPublic: input.isPublic,
-    ...(input.password ? { password: input.password } : {}),
   };
 
   // 둘 중 하나만 저장되는 일이 없도록 한 번에 쓴다.
