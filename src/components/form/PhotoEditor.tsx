@@ -58,6 +58,24 @@ function PhotoEditor({ source, onApply, onCancel, onPickAnother, onError }: Prop
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isApplying, setIsApplying] = useState(false);
 
+  /**
+   * Esc 로는 편집기만 닫는다.
+   *
+   * 모달이 window 에서 Esc 를 듣고 있어 그냥 두면 폼까지 함께 닫힌다.
+   * 잡아채는 단계에서 막아 뒤따르는 처리에 닿지 않게 한다.
+   */
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+
+      event.stopPropagation();
+      onCancel();
+    };
+
+    window.addEventListener("keydown", handleEscape, true);
+    return () => window.removeEventListener("keydown", handleEscape, true);
+  }, [onCancel]);
+
   // 원의 지름은 화면 폭에 따라 달라진다. 계산이 어긋나지 않도록 실제 값을 쓴다.
   useEffect(() => {
     const element = viewRef.current;
@@ -230,7 +248,17 @@ function PhotoEditor({ source, onApply, onCancel, onPickAnother, onError }: Prop
    * 아니라 스크롤 영역에 갇혀 잘린다.
    */
   return createPortal(
-    <StyledPhotoEditor role="dialog" aria-modal="true" aria-label="사진 편집">
+    <StyledPhotoEditor
+      role="dialog"
+      aria-modal="true"
+      aria-label="사진 편집"
+      /*
+       * 포털은 DOM 이 아니라 React 트리로 이벤트를 올린다. 그냥 두면
+       * 편집기 안의 클릭이 모달까지 올라가고, 모달은 자기 상자 밖에서
+       * 일어난 일로 보아 폼을 닫아버린다.
+       */
+      onClick={(event) => event.stopPropagation()}
+    >
       <div className="editor-panel">
         <p className="editor-title">사진 맞추기</p>
         <p className="editor-hint">
