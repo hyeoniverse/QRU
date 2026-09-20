@@ -122,7 +122,8 @@ function Shuffle() {
       <header className="shuffle-header">
         <Title size="medium">명함 찾기</Title>
         <p className="shuffle-description">
-          랜덤 셔플에 노출을 허용한 명함 중 몇 장을 골라 보여줍니다.
+          노출을 허용한 명함 중 다섯 장을 무작위로 보여줍니다. 조건을 좁히거나
+          셔플을 눌러 다른 사람을 찾아보세요.
         </p>
       </header>
 
@@ -217,12 +218,13 @@ const StyledShuffle = styled.div`
   align-items: center;
   gap: 1.5rem;
 
+  /* 아래 조건과 목록이 모두 왼쪽에서 시작하므로 제목도 같은 줄에 맞춘다. */
   .shuffle-header {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.5rem;
-    text-align: center;
+    width: 100%;
   }
 
   .shuffle-description {
@@ -235,7 +237,7 @@ const StyledShuffle = styled.div`
   .shuffle-criteria {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: flex-end;
     gap: 1rem;
     width: 100%;
