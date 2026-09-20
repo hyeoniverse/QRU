@@ -15,7 +15,8 @@ import Navigation from "../header/Navigation";
 import ThemeSwitcher from "../header/ThemeSwitcher";
 import Drawer from "../header/Drawer";
 import Search from "../header/Search";
-import { FaGoogle, FaUserCircle } from "react-icons/fa";
+import UserAvatar from "../header/UserAvatar";
+import { FaGoogle } from "react-icons/fa";
 
 function Header() {
   const dispatch = useDispatch<AppDispatch>();
@@ -63,19 +64,7 @@ function Header() {
           <>
             {isLoggedIn ? (
               <Dropdown
-                toggleButton={
-                  <>
-                    {user?.photoURL ? (
-                      <img
-                        className="userCircle"
-                        src={user.photoURL}
-                        alt="user avatar"
-                      />
-                    ) : (
-                      <FaUserCircle className="userCircle" />
-                    )}
-                  </>
-                }
+                toggleButton={<UserAvatar photoURL={user?.photoURL ?? null} />}
                 className="auth"
               >
                 <>
@@ -169,8 +158,14 @@ const HeaderStyle = styled.header<Props>`
     transform-origin: right;
 
     .userCircle {
+      /*
+       * inline 이면 사진을 불러오지 못했을 때 크기를 잃는다.
+       * 대체 텍스트 크기만큼 납작해져 원이 타원이 된다.
+       */
+      display: block;
       width: 2.5rem;
-      height: 2.5em;
+      /* em 은 부모 글자 크기를 따라가 원이 깨질 수 있다. rem 으로 맞춘다. */
+      height: 2.5rem;
       border-radius: 50%;
       object-fit: cover;
       box-shadow: ${({ theme }) => theme.shadow.default};
