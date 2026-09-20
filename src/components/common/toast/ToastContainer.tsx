@@ -25,17 +25,17 @@ function ToastContainer() {
 
 const ToastContainerStyle = styled.div`
   pointer-events: none;
-  width: 100vw;
-  height: 100vh;
 
   position: fixed;
-  top: 32px;
-  right: 24px;
+  /* 고정 헤더에 가리지 않도록 그 아래에서 시작한다. */
+  top: calc(${({ theme }) => theme.layout.headerHeight} + 1rem);
+  right: 1.5rem;
+  /* 좁은 화면에서 토스트가 화면 밖으로 나가지 않게 한다. */
+  max-width: calc(100vw - 3rem);
   z-index: 9999;
 
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
   align-items: flex-end;
 
   gap: 12px;
