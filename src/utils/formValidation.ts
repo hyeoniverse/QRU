@@ -196,43 +196,92 @@ export const collectVisibility = (
     return collected;
   }, {});
 
-/** 목차에서 보여줄 묶음별 진행 상황 */
-export interface GroupProgress {
-  name: string;
-  /** 이 묶음이 가진 입력 칸 수 */
+/** 목차에서 보여줄 항목 하나의 진행 상황 */
+export interface FieldProgress {
+  /** 화면에서 이 항목으로 건너뛸 때 쓰는 id */
+  id: string;
+  label: string;
+  group: string;
+  /** 이 항목이 가진 입력 칸 수. 생년월일처럼 하위가 있으면 여럿이다. */
   total: number;
-  /** 값이 들어간 칸 수 */
   filled: number;
-  /** 아직 채워야 하는 칸 수. 필수이거나 공개로 둔 채 비어 있는 것 */
+  /** 아직 채워야 하는 칸 수 */
   pending: number;
 }
 
 /**
- * 묶음마다 얼마나 채웠는지 센다.
+ * 항목마다 얼마나 채웠는지 센다.
  *
  * 비어 있는지 판단하는 기준은 검증과 같은 함수를 쓴다. 목차에서는
  * 다 채웠다고 하는데 제출하면 막히는 일이 없어야 한다.
+ */
+export const summarizeFields = (
+  fields: IFormField[],
+  values: FormValues,
+  isPublic: FormVisibility
+): FieldProgress[] => {
+  let group = "";
+
+  return fields.map((field) => {
+    group = field.group ?? group;
+    const rules = flattenFields([field], values);
+
+    // 추가 항목은 사용자가 고른 제목이 곧 이름이다.
+    const label =
+      field.type === "custom"
+        ? rules.find((rule) => rule.id === valueFieldId(field.id))?.label ??
+          field.label
+        : field.label;
+
+    return rules.reduce<FieldProgress>(
+      (progress, rule) => ({
+        ...progress,
+        total: progress.total + 1,
+        filled:
+          progress.filled + ((values[rule.id]?.trim() ?? "") !== "" ? 1 : 0),
+        pending:
+          progress.pending + (messageFor(rule, values, isPublic) ? 1 : 0),
+      }),
+      { id: field.id, label, group, total: 0, filled: 0, pending: 0 }
+    );
+  });
+};
+
+/** 목차에서 보여줄 묶음별 진행 상황. 칸이 아니라 항목 수로 센다. */
+export interface GroupProgress {
+  name: string;
+  /** 이 묶음에 속한 항목 수 */
+  total: number;
+  /** 빠짐없이 채운 항목 수 */
+  filled: number;
+  /** 아직 채워야 하는 항목 수 */
+  pending: number;
+}
+
+/**
+ * 묶음마다 몇 개를 마쳤는지 센다.
+ *
+ * 칸이 아니라 항목 단위로 센다. 목차가 항목을 펼쳐 보여주므로,
+ * 숫자도 눈에 보이는 줄 수와 맞아야 헷갈리지 않는다.
  */
 export const summarizeGroups = (
   fields: IFormField[],
   values: FormValues,
   isPublic: FormVisibility
-): GroupProgress[] => {
-  const groups: GroupProgress[] = [];
+): GroupProgress[] =>
+  summarizeFields(fields, values, isPublic).reduce<GroupProgress[]>(
+    (groups, field) => {
+      let group = groups.find((item) => item.name === field.group);
+      if (!group) {
+        group = { name: field.group, total: 0, filled: 0, pending: 0 };
+        groups.push(group);
+      }
 
-  for (const rule of flattenFields(fields, values)) {
-    if (!rule.group) continue;
+      group.total += 1;
+      if (field.total > 0 && field.filled === field.total) group.filled += 1;
+      if (field.pending > 0) group.pending += 1;
 
-    let group = groups.find((item) => item.name === rule.group);
-    if (!group) {
-      group = { name: rule.group, total: 0, filled: 0, pending: 0 };
-      groups.push(group);
-    }
-
-    group.total += 1;
-    if ((values[rule.id]?.trim() ?? "") !== "") group.filled += 1;
-    if (messageFor(rule, values, isPublic)) group.pending += 1;
-  }
-
-  return groups;
-};
+      return groups;
+    },
+    []
+  );

@@ -9,7 +9,7 @@ import {
   IFormField,
 } from "../../types/formType";
 import { collectGroups, groupAnchorId } from "../../utils/formUtil";
-import { summarizeGroups } from "../../utils/formValidation";
+import { summarizeFields, summarizeGroups } from "../../utils/formValidation";
 
 interface Props {
   fields: IFormField[];
@@ -21,22 +21,26 @@ interface Props {
   scrollRef: RefObject<HTMLElement>;
 }
 
+/** 스크롤해 간 자리가 제목에 바짝 붙지 않도록 남기는 여백 */
+const SCROLL_MARGIN = 12;
+
 /**
- * 폼의 묶음 목차.
+ * 폼의 목차.
  *
  * 항목이 서른 개 가까이 되면 지금 어디쯤인지, 무엇이 남았는지 알기
- * 어렵다. 눌러서 건너뛸 수 있고, 묶음마다 얼마나 채웠는지 보여준다.
+ * 어렵다. 묶음과 그 아래 항목을 펼쳐 보여주고, 눌러서 건너뛸 수 있다.
  */
 function FormToc({ fields, values, isPublic, errors, scrollRef }: Props) {
   const groups = collectGroups(fields);
-  const progress = summarizeGroups(fields, values, isPublic);
+  const groupProgress = summarizeGroups(fields, values, isPublic);
+  const fieldProgress = summarizeFields(fields, values, isPublic);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   /*
    * 아직 비었다고 처음부터 붉게 칠하면 시작하자마자 경고판이 된다.
-   * 검증이 한 번 걸린 뒤에만, 어느 묶음이 막고 있는지 알려준다.
+   * 검증이 한 번 걸린 뒤에만, 어디가 막고 있는지 알려준다.
    */
   const isChecked = Object.keys(errors).length > 0;
-  const [activeIndex, setActiveIndex] = useState(0);
 
   /**
    * 화면에 보이는 묶음을 따라간다.
@@ -73,15 +77,26 @@ function FormToc({ fields, values, isPublic, errors, scrollRef }: Props) {
     // 묶음이 늘거나 줄면(추가 항목) 다시 건다.
   }, [scrollRef, groups.length, groups]);
 
-  const jumpTo = (index: number) => {
+  /** 스크롤 영역 안쪽만 옮긴다. scrollIntoView 는 모달 바깥까지 움직인다. */
+  const scrollTo = (target: Element | null | undefined, margin = 0) => {
     const root = scrollRef.current;
-    const title = root?.querySelector(`#${groupAnchorId(index)}`);
-    if (!root || !title) return;
+    if (!root || !target) return;
 
-    // scrollIntoView 는 모달 바깥까지 움직인다. 안쪽만 옮긴다.
     const offset =
-      title.getBoundingClientRect().top - root.getBoundingClientRect().top;
-    root.scrollTo({ top: root.scrollTop + offset, behavior: "smooth" });
+      target.getBoundingClientRect().top - root.getBoundingClientRect().top;
+    root.scrollTo({ top: root.scrollTop + offset - margin, behavior: "smooth" });
+  };
+
+  const jumpToGroup = (index: number) =>
+    scrollTo(scrollRef.current?.querySelector(`#${groupAnchorId(index)}`));
+
+  const jumpToField = (id: string) => {
+    const input = scrollRef.current?.querySelector(`#${CSS.escape(id)}`);
+    // 항목 전체가 보이도록 입력칸이 아니라 그것을 감싼 덩어리로 간다.
+    scrollTo(input?.closest(".form-group") ?? input, SCROLL_MARGIN);
+
+    // 바로 입력할 수 있게 둔다. 스크롤은 위에서 이미 맞췄다.
+    if (input instanceof HTMLElement) input.focus({ preventScroll: true });
   };
 
   return (
@@ -90,44 +105,63 @@ function FormToc({ fields, values, isPublic, errors, scrollRef }: Props) {
 
       <ol className="toc-list">
         {groups.map((name, index) => {
-          const found = progress.find((item) => item.name === name);
+          const found = groupProgress.find((item) => item.name === name);
           const total = found?.total ?? 0;
           const filled = found?.filled ?? 0;
-          /*
-           * 다 채웠을 때만 표시한다.
-           *
-           * "필수가 남지 않았다" 를 기준으로 삼으면, 선택 항목뿐인
-           * 묶음은 하나만 적어도 완료로 보여 1/3 옆에 체크가 붙는다.
-           */
-          const isDone = total > 0 && filled === total;
-          const hasProblem = isChecked && (found?.pending ?? 0) > 0;
 
           return (
-            <li key={name}>
+            <li className="toc-group" key={name}>
               <button
                 type="button"
                 className={`toc-item ${index === activeIndex ? "active" : ""}`}
                 aria-current={index === activeIndex ? "true" : undefined}
-                onClick={() => jumpTo(index)}
+                onClick={() => jumpToGroup(index)}
               >
-                <span
-                  className={`toc-mark ${isDone ? "done" : ""} ${hasProblem ? "problem" : ""}`}
-                >
-                  {isDone && <FaCheck aria-hidden />}
-                  {hasProblem && <FaExclamation aria-hidden />}
-                </span>
                 <span className="toc-name">{name}</span>
                 <span className="toc-count">
                   {filled}/{total}
-                  <span className="visually-hidden">
-                    {hasProblem
-                      ? " 항목 작성함, 더 채워야 합니다"
-                      : isDone
-                        ? " 항목 모두 작성함"
-                        : " 항목 작성함"}
-                  </span>
+                  <span className="visually-hidden"> 항목 작성함</span>
                 </span>
               </button>
+
+              <ul className="toc-fields">
+                {fieldProgress
+                  .filter((field) => field.group === name)
+                  .map((field) => {
+                    const isDone = field.total > 0 && field.filled === field.total;
+                    const hasProblem = isChecked && field.pending > 0;
+
+                    return (
+                      <li key={field.id}>
+                        <button
+                          type="button"
+                          className="toc-field"
+                          onClick={() => jumpToField(field.id)}
+                        >
+                          <span
+                            className={`toc-mark ${isDone ? "done" : ""} ${
+                              hasProblem ? "problem" : ""
+                            }`}
+                          >
+                            {hasProblem ? (
+                              <FaExclamation aria-hidden />
+                            ) : (
+                              isDone && <FaCheck aria-hidden />
+                            )}
+                          </span>
+                          <span className="toc-field-name">{field.label}</span>
+                          <span className="visually-hidden">
+                            {hasProblem
+                              ? "더 채워야 합니다"
+                              : isDone
+                                ? "작성함"
+                                : "비어 있음"}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+              </ul>
             </li>
           );
         })}
@@ -137,11 +171,15 @@ function FormToc({ fields, values, isPublic, errors, scrollRef }: Props) {
 }
 
 const StyledFormToc = styled.nav`
-  position: sticky;
-  top: 0;
-  align-self: start;
-  width: 11rem;
+  display: flex;
+  flex-direction: column;
+  width: 12rem;
   flex-shrink: 0;
+  /* 항목이 많으면 목차가 화면보다 길어진다. 목차만 따로 굴린다. */
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 
   .toc-title {
     margin: 0 0 0.75rem;
@@ -154,52 +192,77 @@ const StyledFormToc = styled.nav`
   .toc-list {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.75rem;
     margin: 0;
     padding: 0;
     list-style: none;
   }
 
-  .toc-item {
+  .toc-fields {
+    display: flex;
+    flex-direction: column;
+    margin: 0.25rem 0 0 0.6rem;
+    padding: 0 0 0 0.65rem;
+    list-style: none;
+    /* 어느 묶음에 딸린 항목인지 선으로 잇는다. */
+    border-left: 1px solid ${({ theme }) => theme.color.secondary};
+  }
+
+  .toc-item,
+  .toc-field {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.45rem;
     width: 100%;
-    padding: 0.5rem 0.75rem;
 
     border: none;
-    border-radius: ${({ theme }) => theme.borderRadius.default};
     background: transparent;
-    color: ${({ theme }) => theme.color.textSecondary};
-    font-size: ${({ theme }) => theme.fontSize.extraSmall};
     text-align: left;
     cursor: pointer;
     transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .toc-item {
+    padding: 0.4rem 0.6rem;
+    border-radius: ${({ theme }) => theme.borderRadius.default};
+    color: ${({ theme }) => theme.color.text};
+    font-size: ${({ theme }) => theme.fontSize.extraSmall};
+    font-weight: bold;
 
     &:hover {
       background: ${({ theme }) => theme.color.blur};
-      color: ${({ theme }) => theme.color.text};
     }
 
     &.active {
       background: ${({ theme }) => theme.color.secondary};
       color: ${({ theme }) => theme.color.onSecondary};
-      font-weight: bold;
     }
   }
 
-  /* 다 채운 묶음만 색이 찬다. 남은 곳을 붉게 칠하면 시작부터 경고판이 된다. */
+  .toc-field {
+    padding: 0.25rem 0.4rem;
+    border-radius: ${({ theme }) => theme.borderRadius.default};
+    color: ${({ theme }) => theme.color.textSecondary};
+    font-size: ${({ theme }) => theme.fontSize.extraSmall};
+
+    &:hover {
+      background: ${({ theme }) => theme.color.blur};
+      color: ${({ theme }) => theme.color.text};
+    }
+  }
+
+  /* 다 채운 항목만 색이 찬다. 남은 곳을 붉게 칠하면 시작부터 경고판이 된다. */
   .toc-mark {
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
 
-    width: 1.1rem;
-    height: 1.1rem;
+    width: 0.85rem;
+    height: 0.85rem;
     border: 1.5px solid ${({ theme }) => theme.color.textSecondary};
     border-radius: 50%;
-    font-size: 0.55rem;
+    font-size: 0.45rem;
 
     &.done {
       border-color: ${({ theme }) => theme.color.primary};
@@ -214,10 +277,17 @@ const StyledFormToc = styled.nav`
     }
   }
 
-  .toc-name {
+  .toc-name,
+  .toc-field-name {
     flex: 1;
     min-width: 0;
     word-break: keep-all;
+  }
+
+  .toc-field-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .toc-count {
