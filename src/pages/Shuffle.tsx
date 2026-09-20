@@ -205,12 +205,14 @@ function Shuffle() {
       <div className="shuffle-action">
         <Button
           type="button"
-          size="large"
+          size="medium"
           scheme="primary"
           disabled={status === "loading"}
+          title="다시 셔플"
+          aria-label="다시 셔플"
           onClick={() => void shuffle({ filters, text })}
         >
-          <FaShuffle /> 다시 셔플
+          <FaShuffle />
         </Button>
       </div>
     </StyledShuffle>
@@ -279,23 +281,43 @@ const StyledShuffle = styled.div`
   }
 
   /*
-   * 셔플 버튼은 화면 아래에 떠 있다.
+   * 셔플 버튼은 오른쪽 아래에 떠 있다.
    *
    * 이 화면에서 가장 많이 누르는 것이라, 아래로 내려가도 늘 손 닿는
-   * 곳에 있어야 한다. 대신 아래쪽에 그만큼 자리를 비워 마지막 내용을
-   * 가리지 않게 한다.
+   * 곳에 있어야 한다. 가운데에 두면 본문 위를 가로질러 읽는 것을
+   * 방해하므로 모서리로 비켜둔다.
    */
-  padding-bottom: 5.5rem;
+  padding-bottom: 4rem;
 
   .shuffle-action {
     position: fixed;
+    right: 1.5rem;
     bottom: 1.5rem;
-    left: 50%;
-    transform: translateX(-50%);
     z-index: 10;
 
+    /* 아이콘 하나만 담은 동그란 버튼. 글자가 없어 이름을 따로 둔다. */
     button {
+      width: 3.5rem;
+      height: 3.5rem;
+      padding: 0;
+      border-radius: 50%;
       box-shadow: ${({ theme }) => theme.shadow.strong};
+
+      svg {
+        font-size: ${({ theme }) => theme.fontSize.medium};
+      }
+    }
+  }
+
+  @media screen and ${({ theme }) => theme.mediaQuery.mobile} {
+    .shuffle-action {
+      right: 1rem;
+      bottom: 1rem;
+
+      button {
+        width: 3.25rem;
+        height: 3.25rem;
+      }
     }
   }
 
