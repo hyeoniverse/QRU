@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useReducer } from "react";
+import { useCallback, useMemo, useReducer, useRef } from "react";
 import { FORM_FIELDS, MAX_CUSTOM_FIELDS, buildCardFields } from "../data/formFields";
 import { FormErrors, FormValues, FormVisibility, IFormSubmit } from "../types/formType";
+import { customFieldIdsOf } from "../utils/cardUtil";
 import { createInitialVisibility, deriveValues, omitKey, omitKeys } from "../utils/formUtil";
 import {
   collectValues,
@@ -31,18 +32,54 @@ type CardFormAction =
   | { type: "removeCustomField"; id: string }
   | { type: "changeShuffle"; inShuffle: boolean }
   | { type: "changePhoto"; photo: string | null }
-  | { type: "reset" };
+  | { type: "reset"; initial?: CardFormInitial };
 
-const createInitialState = (): CardFormState => ({
-  values: {},
-  isPublic: createInitialVisibility(FORM_FIELDS),
-  errors: {},
-  customFieldIds: [],
-  customFieldSeq: 0,
-  // README 의 excludeFromShuffle 처럼 기본은 노출이고 원하면 끈다.
-  inShuffle: true,
-  photo: null,
-});
+/** 이미 저장된 명함을 고칠 때 폼을 채울 값 */
+export interface CardFormInitial {
+  values: FormValues;
+  isPublic: FormVisibility;
+  inShuffle: boolean;
+  photo: string | null;
+}
+
+/**
+ * 이어 붙일 다음 일련번호.
+ *
+ * 불러온 값에 custom_3 까지 있는데 0 부터 다시 매기면 새로 추가한 항목이
+ * 기존 항목을 덮어쓴다. 가장 큰 번호 다음부터 시작한다.
+ */
+const nextCustomSeq = (customFieldIds: string[]): number =>
+  customFieldIds.reduce(
+    (max, id) => Math.max(max, Number(id.split("_")[1]) || 0),
+    0
+  );
+
+const createInitialState = (initial?: CardFormInitial): CardFormState => {
+  if (!initial) {
+    return {
+      values: {},
+      isPublic: createInitialVisibility(FORM_FIELDS),
+      errors: {},
+      customFieldIds: [],
+      customFieldSeq: 0,
+      // README 의 excludeFromShuffle 처럼 기본은 노출이고 원하면 끈다.
+      inShuffle: true,
+      photo: null,
+    };
+  }
+
+  const customFieldIds = customFieldIdsOf(initial.values);
+
+  return {
+    values: initial.values,
+    isPublic: initial.isPublic,
+    errors: {},
+    customFieldIds,
+    customFieldSeq: nextCustomSeq(customFieldIds),
+    inShuffle: initial.inShuffle,
+    photo: initial.photo,
+  };
+};
 
 const reducer = (state: CardFormState, action: CardFormAction): CardFormState => {
   switch (action.type) {
@@ -111,16 +148,24 @@ const reducer = (state: CardFormState, action: CardFormAction): CardFormState =>
       return { ...state, photo: action.photo };
 
     case "reset":
-      return createInitialState();
+      return createInitialState(action.initial);
 
     default:
       return state;
   }
 };
 
-/** 명함 생성 폼의 상태와 검증을 담당한다. */
-export const useCardForm = () => {
-  const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
+/**
+ * 명함 폼의 상태와 검증을 담당한다.
+ *
+ * initial 을 주면 그 값으로 시작한다. 수정 화면에서 쓴다.
+ * 첫 렌더에서만 읽으므로, 불러오기가 끝난 뒤에 마운트해야 한다.
+ */
+export const useCardForm = (initial?: CardFormInitial) => {
+  const [state, dispatch] = useReducer(reducer, initial, createInitialState);
+
+  // reset 이 매번 새 함수가 되지 않도록 최초 값을 붙들어 둔다.
+  const initialRef = useRef(initial);
 
   const fields = useMemo(
     () => buildCardFields(state.customFieldIds),
@@ -155,8 +200,9 @@ export const useCardForm = () => {
     dispatch({ type: "removeCustomField", id });
   }, []);
 
+  /** 처음 상태로 되돌린다. 수정 화면에서는 불러온 값으로 돌아간다. */
   const reset = useCallback(() => {
-    dispatch({ type: "reset" });
+    dispatch({ type: "reset", initial: initialRef.current });
   }, []);
 
   /** 전체 검증 후 에러 맵을 반영하고 그대로 돌려준다. */

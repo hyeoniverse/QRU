@@ -96,7 +96,7 @@ const collectEntries = (
   });
 
 /** 저장된 값에서 사용자가 추가한 항목의 id 를 복원한다. */
-const customFieldIdsOf = (values: FormValues): string[] =>
+export const customFieldIdsOf = (values: FormValues): string[] =>
   Object.keys(values)
     .filter((key) => /^custom_\d+$/.test(key))
     .sort((a, b) => Number(a.split("_")[1]) - Number(b.split("_")[1]));
