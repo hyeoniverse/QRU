@@ -51,11 +51,51 @@ export const loadImage = (src: string): Promise<HTMLImageElement> =>
     image.src = src;
   });
 
+/** 한 픽셀이라도 비쳐 보이면 투명을 살려야 한다. */
+const hasTransparency = (
+  context: CanvasRenderingContext2D,
+  edge: number
+): boolean => {
+  const { data } = context.getImageData(0, 0, edge, edge);
+
+  for (let at = 3; at < data.length; at += 4) {
+    if (data[at] < 255) return true;
+  }
+
+  return false;
+};
+
+/** 브라우저가 WebP 로 내보낼 수 있는지. 투명을 살리려면 이것이 필요하다. */
+const canEncodeWebp = (canvas: HTMLCanvasElement): boolean =>
+  canvas.toDataURL("image/webp").startsWith("data:image/webp");
+
+/** 이미 그려진 그림 뒤에 흰 종이를 깐다. */
+const fillBehind = (context: CanvasRenderingContext2D, edge: number) => {
+  context.globalCompositeOperation = "destination-over";
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, edge, edge);
+  context.globalCompositeOperation = "source-over";
+};
+
+/** 용량 안에 들어오는 첫 번째 결과를 돌려준다. 없으면 null */
+const encode = (canvas: HTMLCanvasElement, type: string): string | null => {
+  for (const quality of QUALITY_STEPS) {
+    const dataUrl = canvas.toDataURL(type, quality);
+    if (dataUrl.length <= MAX_PHOTO_LENGTH) return dataUrl;
+  }
+
+  return null;
+};
+
 /**
- * 고른 영역을 정사각형 JPEG 데이터 URL 로 만든다.
+ * 고른 영역을 정사각형 데이터 URL 로 만든다.
  *
- * 명함에서는 원형으로 보여주므로 정사각형이면 충분하다.
- * JPEG 은 투명을 표현하지 못해 배경을 흰색으로 채운다.
+ * 투명한 부분이 있으면 WebP 로 내보내 그대로 살린다. JPEG 은 투명을
+ * 표현하지 못해 흰색으로 메워지는데, 배경이 없는 그림을 올렸을 때
+ * 올리지 않은 흰 네모가 생긴다.
+ *
+ * 투명한 곳이 없으면 사진일 가능성이 높아 JPEG 을 쓴다. 같은 용량에서
+ * 사진은 JPEG 이 대체로 더 낫다.
  */
 export const cropToDataUrl = async (
   src: string,
@@ -73,24 +113,18 @@ export const cropToDataUrl = async (
   const context = canvas.getContext("2d");
   if (!context) throw new PhotoTooLargeError();
 
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, edge, edge);
-  context.drawImage(
-    image,
-    rect.x,
-    rect.y,
-    rect.size,
-    rect.size,
-    0,
-    0,
-    edge,
-    edge
-  );
+  context.drawImage(image, rect.x, rect.y, rect.size, rect.size, 0, 0, edge, edge);
 
-  for (const quality of QUALITY_STEPS) {
-    const dataUrl = canvas.toDataURL("image/jpeg", quality);
-    if (dataUrl.length <= MAX_PHOTO_LENGTH) return dataUrl;
+  if (hasTransparency(context, edge) && canEncodeWebp(canvas)) {
+    const transparent = encode(canvas, "image/webp");
+    if (transparent) return transparent;
+    // 투명을 살리면 용량을 못 맞출 때가 있다. 그때는 흰 배경을 깐다.
   }
+
+  fillBehind(context, edge);
+
+  const opaque = encode(canvas, "image/jpeg");
+  if (opaque) return opaque;
 
   throw new PhotoTooLargeError();
 };
