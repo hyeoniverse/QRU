@@ -9,6 +9,7 @@ import { listMyCards } from "../services/card";
 import { isFirebaseConfigured } from "../services/firebase";
 import { findEntry } from "../utils/cardUtil";
 
+import DeleteCardButton from "../components/card/DeleteCardButton";
 import FirebaseNotice from "../components/common/FirebaseNotice";
 import Loading from "../components/common/Loading";
 import Title from "../components/common/Title";
@@ -29,6 +30,7 @@ function MyPage() {
     data: cards,
     isLoading,
     isError,
+    refetch,
   } = useQuery(
     ["my-cards", user?.uid],
     () => listMyCards(user?.uid as string),
@@ -105,7 +107,15 @@ function MyPage() {
                     <span>{card.inShuffle ? "셔플 노출" : "셔플 제외"}</span>
                   </span>
                 </Link>
-                <FaChevronRight className="item-arrow" aria-hidden />
+                {/* 링크 위에 놓아, 카드를 눌러 이동하는 것과 섞이지 않게 한다. */}
+                <div className="item-actions">
+                  <DeleteCardButton
+                    card={card}
+                    iconOnly
+                    onDeleted={() => void refetch()}
+                  />
+                  <FaChevronRight className="item-arrow" aria-hidden />
+                </div>
               </li>
             );
           })}
@@ -176,22 +186,44 @@ const StyledMyPage = styled.div`
     }
   }
 
-  /* 카드 어디를 눌러도 명함으로 간다. */
   .item-link {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
     flex: 1;
-    /* 긴 자기소개가 화살표를 밀어내지 않도록 한다. */
+    /* 긴 자기소개가 오른쪽 버튼을 밀어내지 않도록 한다. */
     min-width: 0;
     padding: 1.25rem 0 1.25rem 1.5rem;
     color: ${({ theme }) => theme.color.text};
 
-    &:focus-visible {
-      outline: 2px solid ${({ theme }) => theme.color.primary};
-      outline-offset: -2px;
+    /*
+     * 카드 어디를 눌러도 명함으로 간다.
+     *
+     * 링크를 카드만큼 키우는 대신 덮개를 깐다. 그래야 삭제 버튼을
+     * 링크 안에 넣지 않고도 카드 전체가 눌린다. (a 안의 button 은
+     * 올바른 마크업이 아니다)
+     */
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
       border-radius: ${({ theme }) => theme.borderRadius.default};
     }
+
+    &:focus-visible::after {
+      outline: 2px solid ${({ theme }) => theme.color.primary};
+      outline-offset: -2px;
+    }
+  }
+
+  /* 덮개 위로 올려 눌리게 한다. */
+  .item-actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
   }
 
   .item-name {
@@ -216,7 +248,6 @@ const StyledMyPage = styled.div`
   }
 
   .item-arrow {
-    flex-shrink: 0;
     margin-right: 1.5rem;
     color: ${({ theme }) => theme.color.textSecondary};
   }

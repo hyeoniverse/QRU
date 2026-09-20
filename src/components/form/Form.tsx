@@ -6,7 +6,7 @@ import {
   FormVisibility,
   IFormField,
 } from "../../types/formType";
-import { CARD_FORM_ID } from "../../utils/formUtil";
+import { CARD_FORM_ID, collectGroups, groupAnchorId } from "../../utils/formUtil";
 import FormField, { FieldHandlers } from "./FormField";
 
 interface Props extends FieldHandlers {
@@ -39,11 +39,26 @@ function Form({
     onSubmit();
   };
 
+  const groups = collectGroups(fields);
+  // 같은 묶음이 이어질 때는 제목을 한 번만 그린다.
+  let shown = "";
+
   return (
     <StyledForm id={id} onSubmit={handleSubmit} noValidate>
-      {fields.map((field) => (
+      {fields.map((field) => {
+        const opensGroup = Boolean(field.group) && field.group !== shown;
+        if (field.group) shown = field.group;
+
+        return (
         <Fragment key={field.id}>
-          {field.group && <h2 className="form-group-title">{field.group}</h2>}
+          {opensGroup && field.group && (
+            <h2
+              className="form-group-title"
+              id={groupAnchorId(groups.indexOf(field.group))}
+            >
+              {field.group}
+            </h2>
+          )}
           <FormField
             field={field}
             values={values}
@@ -53,7 +68,8 @@ function Form({
             {...handlers}
           />
         </Fragment>
-      ))}
+        );
+      })}
     </StyledForm>
   );
 }

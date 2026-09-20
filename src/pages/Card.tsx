@@ -12,6 +12,7 @@ import { CardFormInitial } from "../hooks/useCardForm";
 import Button from "../components/common/Button";
 import CardView from "../components/card/CardView";
 import CardShare from "../components/card/CardShare";
+import DeleteCardButton from "../components/card/DeleteCardButton";
 import EditCardModal from "../components/card/EditCardModal";
 import FirebaseNotice from "../components/common/FirebaseNotice";
 import Loading from "../components/common/Loading";
@@ -134,15 +135,24 @@ function Card() {
           serialNumber={card.serialNumber}
           actions={
             isOwner && (
-              <Button
-                type="button"
-                size="small"
-                scheme="primary"
-                disabled={isPreparing}
-                onClick={() => void handleEdit()}
-              >
-                {isPreparing ? <Loading size="small" /> : <FaPen />} 명함 편집
-              </Button>
+              <div className="owner-actions">
+                <Button
+                  type="button"
+                  size="small"
+                  scheme="primary"
+                  disabled={isPreparing}
+                  onClick={() => void handleEdit()}
+                >
+                  {isPreparing ? <Loading size="small" /> : <FaPen />} 편집
+                </Button>
+                <DeleteCardButton
+                  card={card}
+                  onDeleted={() => {
+                    void queryClient.invalidateQueries(["my-cards"]);
+                    navigate("/mypage", { replace: true });
+                  }}
+                />
+              </div>
             )
           }
         />
@@ -157,10 +167,6 @@ function Card() {
             void queryClient.invalidateQueries(["card", card.id]);
             void queryClient.invalidateQueries(["card-photo", card.id]);
             void queryClient.invalidateQueries(["my-cards"]);
-          }}
-          onDeleted={() => {
-            void queryClient.invalidateQueries(["my-cards"]);
-            navigate("/mypage", { replace: true });
           }}
         />
       )}
@@ -247,6 +253,11 @@ const StyledCardPage = styled.div`
   .card-panel > aside {
     grid-column: 2;
     grid-row: 1;
+  }
+
+  .owner-actions {
+    display: flex;
+    gap: 0.5rem;
   }
 
   @media screen and ${({ theme }) => theme.mediaQuery.mobile} {

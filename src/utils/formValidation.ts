@@ -15,6 +15,8 @@ type ValueFormat = "email" | "number";
 interface FieldRule {
   id: string;
   label: string;
+  /** 이 키가 속한 묶음. 목차에서 진행 상황을 셀 때 쓴다. */
+  group: string;
   /** 공개 여부와 무관하게 항상 입력해야 하는지 */
   required: boolean;
   /** 공개로 설정했을 때 입력이 강제되는지 (공개 토글이 붙은 키인지) */
@@ -46,9 +48,13 @@ const resolveLabel = (field: IFormField, values: FormValues): string => {
 const flattenFields = (
   fields: IFormField[],
   values: FormValues,
-  parent?: { id: string; filled: boolean }
-): FieldRule[] =>
-  fields.flatMap((field) => {
+  parent?: { id: string; filled: boolean; group: string }
+): FieldRule[] => {
+  // 묶음 이름은 그것이 붙은 항목부터 다음 이름이 나올 때까지 이어진다.
+  let group = parent?.group ?? "";
+
+  return fields.flatMap((field) => {
+    group = field.group ?? group;
     const id = parent ? subFieldId(parent.id, field.id) : field.id;
     const value = values[id]?.trim() ?? "";
     const publishable = field.publishable !== false;
@@ -62,6 +68,7 @@ const flattenFields = (
     rules.push({
       id,
       label: field.label,
+      group,
       required,
       publishable,
       minLength: isChoice ? undefined : field.minLength,
@@ -73,6 +80,7 @@ const flattenFields = (
       rules.push({
         id: selfFieldId(id),
         label: `${field.label} 직접 입력`,
+        group,
         required: true,
         publishable: false,
         minLength: 1,
@@ -84,6 +92,7 @@ const flattenFields = (
       rules.push({
         id: valueFieldId(id),
         label: resolveLabel({ ...field, id }, values),
+        group,
         required: true,
         publishable: false,
         minLength: field.minLength,
@@ -93,12 +102,17 @@ const flattenFields = (
 
     if (field.subFields) {
       rules.push(
-        ...flattenFields(field.subFields, values, { id, filled: value !== "" })
+        ...flattenFields(field.subFields, values, {
+          id,
+          filled: value !== "",
+          group,
+        })
       );
     }
 
     return rules;
   });
+};
 
 const messageFor = (
   rule: FieldRule,
@@ -181,3 +195,44 @@ export const collectVisibility = (
     if (rule.publishable) collected[rule.id] = isPublic[rule.id] ?? false;
     return collected;
   }, {});
+
+/** 목차에서 보여줄 묶음별 진행 상황 */
+export interface GroupProgress {
+  name: string;
+  /** 이 묶음이 가진 입력 칸 수 */
+  total: number;
+  /** 값이 들어간 칸 수 */
+  filled: number;
+  /** 아직 채워야 하는 칸 수. 필수이거나 공개로 둔 채 비어 있는 것 */
+  pending: number;
+}
+
+/**
+ * 묶음마다 얼마나 채웠는지 센다.
+ *
+ * 비어 있는지 판단하는 기준은 검증과 같은 함수를 쓴다. 목차에서는
+ * 다 채웠다고 하는데 제출하면 막히는 일이 없어야 한다.
+ */
+export const summarizeGroups = (
+  fields: IFormField[],
+  values: FormValues,
+  isPublic: FormVisibility
+): GroupProgress[] => {
+  const groups: GroupProgress[] = [];
+
+  for (const rule of flattenFields(fields, values)) {
+    if (!rule.group) continue;
+
+    let group = groups.find((item) => item.name === rule.group);
+    if (!group) {
+      group = { name: rule.group, total: 0, filled: 0, pending: 0 };
+      groups.push(group);
+    }
+
+    group.total += 1;
+    if ((values[rule.id]?.trim() ?? "") !== "") group.filled += 1;
+    if (messageFor(rule, values, isPublic)) group.pending += 1;
+  }
+
+  return groups;
+};

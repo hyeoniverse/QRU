@@ -43,16 +43,25 @@ function CardShare({ url, serialNumber, actions }: Props) {
 
   return (
     <StyledCardShare>
-      <div className="qr-box">
-        <QRCodeCanvas
-          ref={canvasRef}
-          value={url}
-          size={QR_SIZE}
-          bgColor={QR_BACKGROUND}
-          fgColor={QR_FOREGROUND}
-          level="Q"
-          marginSize={2}
-        />
+      <div className="qr-column">
+        <div className="qr-box">
+          <QRCodeCanvas
+            ref={canvasRef}
+            value={url}
+            size={QR_SIZE}
+            bgColor={QR_BACKGROUND}
+            fgColor={QR_FOREGROUND}
+            level="Q"
+            marginSize={2}
+          />
+        </div>
+
+        {serialNumber && (
+          <div className="share-serial">
+            <span>일련번호</span>
+            <CopyText value={serialNumber} label="일련번호" />
+          </div>
+        )}
       </div>
 
       <div className="share-side">
@@ -68,13 +77,6 @@ function CardShare({ url, serialNumber, actions }: Props) {
             {isCopied ? <FaCheck /> : <FaLink />} 링크 복사
           </Button>
         </div>
-
-        {serialNumber && (
-          <div className="share-serial">
-            <span>일련번호</span>
-            <CopyText value={serialNumber} label="일련번호" />
-          </div>
-        )}
 
         {actions}
       </div>
@@ -99,6 +101,14 @@ const StyledCardShare = styled.aside`
     gap: 0.75rem;
   }
 
+  /* 일련번호는 QR 바로 아래에 둔다. 둘 다 이 명함을 가리키는 값이다. */
+  .qr-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
   .qr-box {
     display: flex;
     padding: 0.75rem;
@@ -116,6 +126,7 @@ const StyledCardShare = styled.aside`
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    white-space: nowrap;
     font-size: ${({ theme }) => theme.fontSize.extraSmall};
     color: ${({ theme }) => theme.color.textSecondary};
   }

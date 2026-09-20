@@ -14,6 +14,7 @@ import InputCheck from "../common/InputCheck";
 import Button from "../common/Button";
 import FirebaseNotice from "../common/FirebaseNotice";
 import Form from "./Form";
+import FormToc from "./FormToc";
 import PhotoPicker from "./PhotoPicker";
 
 interface Props {
@@ -134,7 +135,18 @@ function CardFormModal({
           )}
         </div>
 
-        <div className="form-content" ref={scrollRef}>
+        <div className="form-body">
+          {isFirebaseConfigured && (
+            <FormToc
+              fields={form.fields}
+              values={form.values}
+              isPublic={form.isPublic}
+              errors={form.errors}
+              scrollRef={scrollRef}
+            />
+          )}
+
+          <div className="form-content" ref={scrollRef}>
           {isFirebaseConfigured ? (
             <>
               <div className="form-photo">
@@ -164,9 +176,10 @@ function CardFormModal({
                 onSubmit={onSubmit}
               />
             </>
-          ) : (
-            <FirebaseNotice description={notice} />
-          )}
+            ) : (
+              <FirebaseNotice description={notice} />
+            )}
+          </div>
         </div>
       </StyledCardFormModal>
     </Modal>
@@ -254,7 +267,28 @@ const StyledCardFormModal = styled.div`
     word-break: keep-all;
   }
 
+  /* 목차와 입력 영역을 나란히 둔다. 스크롤은 입력 영역만 한다. */
+  .form-body {
+    display: flex;
+    gap: 1.5rem;
+    min-height: 0;
+    flex: 1;
+  }
+
+  .form-body > nav {
+    margin: 0 0 2rem 2rem;
+  }
+
+  /* 좁은 화면에는 목차가 들어갈 자리가 없다. */
+  @media screen and ${({ theme }) => theme.mediaQuery.tablet} {
+    .form-body > nav {
+      display: none;
+    }
+  }
+
   .form-content {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
