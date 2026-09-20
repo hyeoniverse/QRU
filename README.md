@@ -4,266 +4,203 @@
 
 QR 코드를 통해 손쉽게 자신을 소개하거나 랜덤 셔플 기능으로 새로운 친구를 만날 수 있습니다.
 
+🔗 **[qryou-app.web.app](https://qryou-app.web.app)**
+
 ## 주요 기능 ✨
 
 ### 1. 디지털 명함 생성 🖋️
 
-- **이름(닉네임)**, **전화번호**, **성별**, **MBTI**, **취미**, **SNS 아이디** 등 정보를 입력해 QR 코드를 자동 생성합니다.
-- 사용자가 원하는 추가 정보를 최대 5개까지 포함할 수 있습니다.
-- 생성된 QR 코드는 다운로드하거나 URL로 공유할 수 있습니다.
+- **한 줄 자기소개**, **이름**, **성별**, **생년월일**, **이메일**, **SNS**, **MBTI**, **취미/관심사**, **좋아하는 것**, **싫어하는 것** 을 입력합니다. 생일과 나이는 생년월일에서 자동으로 계산됩니다.
+- 원하는 항목을 **최대 5개**까지 더할 수 있습니다. 소속/회사, 직무/직책, 연락처, 웹사이트 등에서 고르거나 제목을 직접 적습니다.
+- 취미처럼 표기가 갈리기 쉬운 항목은 **추천 값을 눌러 넣을 수 있습니다.** 같은 말을 같은 표기로 적게 해 검색 정확도를 올립니다.
+- 사진을 넣을 수 있습니다. 고르는 즉시 정사각형으로 잘라 줄이므로 휴대폰 사진을 그대로 올려도 됩니다.
+- **회원가입 없이 사용할 수 있습니다.** 비회원은 명함을 만들 때 비밀번호를 정해 둡니다.
 
-### 2. 디지털 명함 관리 🛠️
+### 2. 명함 보기와 공유 🔗
 
-- **회원가입 없이 사용 가능**: 비회원은 랜덤으로 발급된 일련번호로 자신의 명함을 관리할 수 있습니다.
-- **회원가입 시 편리한 관리**: 로그인 후 생성한 명함을 자유롭게 수정 및 삭제할 수 있습니다.
+- 명함마다 고유 주소(`/cards/{id}`)가 있습니다.
+- QR 코드를 **PNG 로 내려받거나** 링크를 복사해 공유합니다.
+- 사람이 옮겨 적을 수 있는 일련번호(예: `7K3FM-9P2XR`)도 함께 발급됩니다.
 
-### 3. 랜덤 셔플로 친구 만들기 🔄
+### 3. 명함 찾기 🔄
 
-- QRU의 랜덤 셔플 기능을 사용해 새로운 친구를 만날 수 있습니다.
-- **필터링 옵션**: 랜덤 셔플 시 **성별**, **MBTI** 등 사용자가 원하는 조건으로 검색 범위를 좁힐 수 있습니다.
+- 공개된 명함 중에서 무작위로 한 장을 보여줍니다.
+- **조건 필터**: 성별, MBTI, SNS 종류 등 공개 항목이면 무엇으로든 좁힐 수 있습니다.
+- **검색어**: 부분 일치로 훑습니다. "등산", "INFP", "3월" 처럼 아무 항목이나 걸립니다.
+- 명함을 만들 때 **셔플 노출 여부를 직접 고릅니다.**
 
 ### 4. 정보 공개 설정 🔒
 
-- 사용자는 명함에 포함된 정보를 선택적으로 공개할 수 있습니다.
-    - 예: 특정 정보는 회원에게만 공개, 랜덤 셔플에서는 특정 정보 비공개, 특정 정보를 가진 사용자(성별, SNS 공개 등...)에게만 자신의 정보 공개.
+- 항목마다 공개 여부를 따로 정합니다.
+- 비공개로 둔 항목은 **화면에서 숨기는 것이 아니라 공개 문서에 아예 저장되지 않습니다.** 자세한 내용은 [데이터 구조](#데이터-구조-)를 참고하세요.
 
-### 5. 커스터마이징 🎨
+### 5. 그 외
 
-- QR 코드 및 명함 디자인을 선택하여 개인 맞춤형 명함을 생성할 수 있습니다.
-
-## 사용 방법 💡
-
-1. **명함 생성**
-    - 사이트에서 정보를 입력하고 "QR 코드 생성" 버튼을 클릭합니다.
-    - 생성된 QR 코드를 다운로드하거나 URL로 공유합니다.
-2. **명함 관리**
-    - 회원가입 사용자: 로그인 후 명함을 편집하거나 정보 공개 설정을 변경합니다.
-    - 비회원 사용자: 발급된 일련번호를 입력해 명함을 관리합니다.
-3. **랜덤 셔플**
-    - 랜덤 셔플 버튼을 눌러 새로운 친구를 만나고, 필터링 옵션으로 원하는 조건을 설정할 수 있습니다.
-4. **QR 코드 스캔**
-    - 휴대폰 카메라 등을 이용하여 QR 코드를 스캔하여 명함 정보를 빠르게 확인할 수 있습니다.
+- 다크 / 라이트 테마를 지원합니다.
+- 모바일(~768px), 태블릿(~1024px), 데스크톱(1025px~) 에 맞춰 레이아웃이 달라집니다.
 
 ## 화면 구성 📱
 
-### 1. **홈 화면**
+| 경로 | 화면 | 상태 |
+| --- | --- | --- |
+| `/` | 홈. 서비스 소개와 명함 생성 모달 | ✅ |
+| `/cards/:id` | 명함 보기. QR 코드 다운로드와 링크 복사 | ✅ |
+| `/cards/shuffle` | 명함 찾기. 조건 필터와 검색 | ✅ |
+| `/mypage` | 내 명함 관리 | 🚧 비어 있음 |
 
-- QRU 소개 및 "명함 생성하기" 버튼.
-- 로그인/회원 가입 버튼.
-
-### 2. **명함 생성 화면**
-
-- 사용자 정보 입력 폼.
-- 미리보기 및 QR 코드 생성 버튼.
-
-### 3. **랜덤 셔플 화면**
-
-- 랜덤 셔플 시작 버튼.
-- **필터링 옵션**: 성별, MBTI 등 조건 선택.
-
-### 4. **QR 코드 관리 화면**
-
-- QR 코드 미리보기 및 다운로드.
-- 명함 정보 수정 및 정보 공개 설정 기능.
-
-### 5. **로그인 및 회원가입 화면**
-
-- Firebase Authentication을 통한 로그인 및 회원 가입.
-
-## 반응형 웹 디자인 📐
-
-QRU는 **모든 디바이스에서 원활히 동작**하도록 설계되었습니다.
-
-- **모바일**: 간결한 UI와 터치 친화적인 디자인으로 누구나 쉽게 명함을 생성하고 관리할 수 있습니다.
-- **태블릿**: 넓은 화면을 활용한 최적화된 사용자 경험 제공.
-- **데스크톱**: 풍부한 UI와 빠른 데이터 접근 가능.
-
-Tailwind CSS의 유연한 반응형 유틸리티 클래스를 사용하여 다양한 해상도에서도 일관된 디자인을 유지합니다.
-
----
+로그인은 Firebase Authentication 의 **Google 계정 로그인**을 씁니다.
 
 ## 기술 스택 🔧
 
 ### 프론트엔드 🖥️
 
-- **React** (TypeScript)
-- **Styled-components**: 간단하고 효율적인 UI 디자인
-- **Axios**: API 통신 라이브러리
+- **React 18** (TypeScript) + **Vite**
+- **styled-components**: 테마 기반 스타일링
+- **Redux Toolkit**: 인증 · 모달 · 토스트 등 전역 UI 상태
+- **react-query**: 서버 상태 관리
+- **react-router-dom v7**
 
 ### 백엔드 및 인증 🛡️
 
-- **Firebase Firestore**: 사용자 및 명함 데이터 관리
-- **Firebase Authentication**: 회원 인증 및 세션 관리
-- **Cloud Functions**: 서버리스 백엔드 로직 처리
+- **Firebase Firestore**: 명함 데이터
+- **Firebase Authentication**: Google 계정 로그인
+- **Firebase Hosting**: 배포
+
+별도의 서버나 Cloud Functions 는 두지 않았습니다. 브라우저가 Firestore 에 직접 읽고 쓰며, 권한은 전부 [`firestore.rules`](firestore.rules) 에서 막습니다.
 
 ### 기타 🚀
 
-- **QR 코드 생성 라이브러리**: `qrcode.react`, `qr-code-styling`
-- **LocalStorage**: 비회원 데이터 관리
+- **qrcode.react**: QR 코드 생성
+- **react-datepicker**, **react-icons**
+- **Playwright**: PR 스크린샷 자동 생성 (`npm run screenshots`)
 
 ## 데이터 구조 📂
 
-### Firestore 데이터베이스 구조
+명함 한 장은 **세 개의 문서**로 나뉩니다.
 
-Firestore 컬렉션 및 문서 기반의 구조를 활용하여 데이터를 관리합니다.
+```bash
+guestCards/{id}              # 비회원 명함 (회원은 cards/{id})
+├── serialNumber             # 사람이 옮겨 적는 일련번호
+├── uid                      # 회원의 고유 ID (비회원은 null)
+├── createdAt                # 서버 시각
+├── entries[]                # 공개 항목만. { id, label, value }
+├── search{}                 # 조건 검색용 색인. 항목 id -> 정규화된 값
+├── inShuffle                # 셔플 노출 여부
+├── hasPhoto                 # 사진 문서가 있는지
+│
+├── private/card             # 소유자만 접근
+│   ├── values{}             # 입력 원본 (비공개 항목 포함)
+│   ├── isPublic{}           # 항목별 공개 설정
+│   └── password{}           # 비회원 비밀번호 해시 (PBKDF2-SHA256)
+│
+└── photo/data               # 사진
+    └── dataUrl              # 줄여서 담은 JPEG 데이터 URL
+```
 
-1. **users** (회원 정보)
-    - `uid`: Firebase Authentication에서 제공하는 사용자 고유 ID
-    - `email`: 사용자 이메일
-    - `createdAt`: 가입 날짜
-2. **cards** (명함 정보)
-    - `id`: 문서 ID (자동 생성)
-    - `uid`: 사용자의 고유 ID (비회원일 경우 NULL)
-    - `serialNumber`: 비회원 랜덤 일련번호
-    - `name`: 이름(닉네임)
-    - `gender`: 성별
-    - `phone`: 전화번호
-    - `mbti`: MBTI
-    - `hobby`: 취미
-    - `sns`: SNS 아이디 리스트
-    - `customFields`: 사용자 정의 필드 (최대 5개)
-    - `qrCodeUrl`: 생성된 QR 코드 URL
-    - `visibilitySettings`: 정보 공개 설정
-        - `isShuffle`: 랜덤 셔플에서 비공개 여부
-        - `visibleToWhom`: 특정 정보를 가진 사용자에게만 공개
-    - `createdAt`: 생성 날짜
-    - `updatedAt`: 수정 날짜
+**왜 나눴나** — Firestore 보안 규칙은 문서 단위로만 동작하고 **필드 하나를 가릴 수 없습니다.** 비공개 항목을 공개 문서에 넣어두고 화면에서만 숨기면, 문서를 직접 읽는 것만으로 새어나갑니다. 그래서 저장 단계에서 갈라둡니다.
+
+**`search` 가 따로 있는 이유** — `entries` 는 화면에 뿌리기 좋은 배열이지만, Firestore 는 배열 원소의 특정 필드로 거르는 질의를 지원하지 않습니다. 조건 검색을 위해 같은 내용을 맵으로 한 번 더 저장합니다. 이 결정에 이르기까지의 과정은 [`docs/troubleshooting.md`](docs/troubleshooting.md) 에 적어두었습니다.
+
+**사진을 Firestore 에 넣는 이유** — Firebase Storage 를 쓰지 않아 문서에 데이터 URL 로 담습니다. 대신 클라이언트에서 긴 변 512px, 150KB 이하로 줄이고 규칙에서도 같은 상한으로 막습니다. 셔플이 후보를 수십 장 가져올 때 사진까지 딸려오지 않도록 하위 문서로 떼어두었습니다.
 
 ## 프로젝트 구조 📂
 
-### 기본 프로젝트 구조
-
 ```bash
 QRU/
-├── public/                   # 정적 파일
-│   └── logo.svg              # 로고 및 favicon
-├── src/                      # 소스 코드
-│   ├── assets/               # 이미지, 폰트, 아이콘 등
-│   │   └── logo.svg
-│   ├── components/           # 재사용 가능한 UI 컴포넌트
-│   │   ├── common/           # 공통 컴포넌트 (버튼, 모달 등)
-│   │   │   ├── Button.tsx
-│   │   │   ├── Modal.tsx
-│   │   │   └── QRCode.tsx
-│   │   ├── layout/           # 레이아웃 관련 컴포넌트
-│   │   │   ├── Header.tsx
-│   │   │   ├── Footer.tsx
-│   │   │   └── Layout.tsx
-│   │   └── Logo.tsx
-│   ├── contexts/             # Context API (전역 상태 관리)
-│   │   ├── AuthContext.tsx
-│   │   ├── ThemeContext.tsx
-│   │   └── QRCodeContext.tsx
-│   ├── hooks/                # 커스텀 훅
-│   │   └── useAuth.js
+├── .github/workflows/        # Firebase Hosting 배포
+├── docs/                     # 컨벤션 및 트러블슈팅 문서
+├── scripts/
+│   └── pr-screenshots.mjs    # PR 본문에 스크린샷을 붙이는 스크립트
+├── src/
+│   ├── api/                  # react-query 클라이언트
+│   ├── components/
+│   │   ├── card/             # 명함 보기 · QR 공유
+│   │   ├── common/           # 버튼, 입력, 모달, 토스트 등
+│   │   ├── form/             # 명함 생성 폼
+│   │   ├── header/           # 내비게이션, 검색, 테마 전환
+│   │   ├── home/             # 홈 화면과 생성 모달
+│   │   └── layout/           # Header / Footer / Layout
+│   ├── context/              # 테마 컨텍스트
+│   ├── data/                 # 폼 항목 정의, 내비게이션 정의
+│   ├── hooks/                # useCardForm 등 커스텀 훅
 │   ├── pages/                # 라우트 페이지
-│   │   ├── Home.tsx
-│   │   ├── About.tsx
-│   │   ├── MyPage.tsx
-│   │   ├── QRShuffle.tsx
-│   │   └── EditCard.tsx
-│   ├── services/             # API 호출 로직
-│   │   ├── firebase.js
-│   │   └── api.js
-│   ├── styles/               # 전역 스타일 및 테마 설정
-│   │   ├── globals.css
-│   │   └── tailwind.css
-│   ├── App.tsx               # 주요 컴포넌트
-│   ├── main.tsx              # 엔트리 포인트
-│   └── vite-env.d.ts         # Vite 환경 변수 타입
-├── .env                      # 환경 변수
-├── package.json              # 패키지 정보
-├── vite.config.js            # Vite 설정
-└── README.md                 # 프로젝트 설명
-
+│   ├── services/             # firebase 초기화, 명함 읽기/쓰기
+│   ├── store/                # Redux 스토어와 슬라이스
+│   ├── styles/               # 전역 스타일과 테마
+│   ├── types/                # 공용 타입
+│   └── utils/                # 검증, 직렬화, 이미지, 비밀번호
+├── firestore.rules           # Firestore 보안 규칙
+├── firebase.json
+└── vite.config.ts
 ```
 
-### 세부 설명
+### 눈여겨볼 곳
 
-1. **`public/`**
-    - 정적 파일 저장소.
-    - 로고, favicon, SEO 관련 메타파일 (e.g., robots.txt)을 저장.
-2. **`src/components/`**
-    - **`common/`**: 공통으로 사용하는 컴포넌트들 (e.g., 버튼, 모달, QR코드 생성).
-    - **`layout/`**: 페이지 레이아웃 구성 요소 (e.g., 헤더, 푸터, 사이드바).
-3. **`src/pages/`**
-    - 주요 페이지 컴포넌트.
-    - `Home.tsx`: 메인 랜딩 페이지.
-    - `QRShuffle.tsx`: 랜덤 QR 셔플 기능 페이지.
-    - `EditCard.tsx`: 명함 수정 페이지.
-4. **`src/contexts/`**
-    - **`AuthContext`**: 사용자 인증 상태 관리.
-    - **`QRCodeContext`**: QR 코드 생성/관리 상태.
-    - **`ThemeContext`**: 다크 모드 등 테마 설정.
-5. **`src/services/`**
-    - 서버와 통신하는 API 로직을 캡슐화.
-    - `api.js`에서 Axios를 사용하여 호출을 통합 관리.
-6. **`src/styles/`**
-    - Tailwind CSS의 전역 스타일 정의 (`globals.css`).
-    - 필요 시 커스텀 스타일 추가 (`tailwind.css`).
-7. **`src/hooks/`**
-    - 재사용 가능한 커스텀 훅 저장소.
-    - e.g., `useAuth`, `useQRCode` 등.
-8. **`App.tsx`**
-    - 라우팅 및 전역 레이아웃 정의.
-    - React Router를 사용하여 페이지 구성.
-9. **환경 변수 설정 (`.env`)**
-    - Firebase 설정 및 API URL 저장.
+- [`src/data/formFields.ts`](src/data/formFields.ts) — 명함 항목이 전부 여기 정의되어 있습니다. 항목을 더하거나 빼려면 이 파일만 고치면 됩니다.
+- [`src/utils/formValidation.ts`](src/utils/formValidation.ts) — `flattenFields` 가 항목 id 를 만드는 단일 기준입니다. 렌더링과 검증이 같은 규칙을 쓰도록 여기에 모아두었습니다.
+- [`src/services/card.ts`](src/services/card.ts) — 명함을 읽고 쓰는 곳. 질의는 전부 "같음" 조건만 씁니다. 그래야 Firestore 가 단일 필드 색인을 합쳐 처리해서 복합 색인을 만들지 않아도 됩니다.
+- [`firestore.rules`](firestore.rules) — 공개 문서의 키 목록은 `PublicCard` 타입과 **정확히 일치해야 합니다.** 한쪽에만 필드를 더하면 `hasOnly` 가 막아 생성이 통째로 거부됩니다.
 
-### 기본 의존성 패키지
+## 시작하기 💡
 
-1. **필수**
-    
-    ```bash
-    npm install react-router-dom axios firebase
-    
-    ```
-    
-2. **Styled-components 설치**
-    
-    ```bash
-    npm install styled-components
-    npm install --save-dev @types/styled-components
-    ```
+```bash
+npm install
+npm run dev
+```
 
-    - TypeScript 프로젝트에서는 추가적으로 타입 정의를 설치해야 합니다.
-    
-3. **추가 유틸리티**
-    - `react-icons`: 아이콘 사용.
-    - `qrcode.react`: QR 코드 생성.
-    - `clsx`: 조건부 클래스 관리. (선택)
+Firebase 설정이 필요합니다. 저장소 루트에 `.env` 를 만들고 아래 값을 채웁니다. [Firebase 콘솔](https://console.firebase.google.com/)의 프로젝트 설정 > 내 앱 > SDK 설정에서 가져올 수 있습니다.
 
-## 개발 계획 🤸‍♀️
+```bash
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_MEASUREMENT_ID=    # 선택. 없으면 Analytics 없이 동작합니다
+```
 
-### 개발 일정 🗓️
+설정이 없어도 앱은 뜨지만 명함 생성과 로그인이 막히고 화면에 안내가 표시됩니다.
 
-| 기간 | 작업 내용 | 완료 |
-| --- | --- | --- |
-|  | 기획 및 화면 설계, 데이터베이스 설계 | ✅ |
-|  | 프론트엔드 개발 (UI/UX 구성) |  |
-|  | Firebase 연동 및 인증 로직 개발 | ✅ |
-|  | 랜덤 셔플 기능 개발 |  |
-|  | 정보 공개 설정 및 추가 기능 개발 |  |
-|  | 버그 수정 및 최종 테스트 |  |
-|  | 배포 및 사용자 피드백 |  |
+| 명령 | 설명 |
+| --- | --- |
+| `npm run dev` | 개발 서버 |
+| `npm run build` | 타입 검사 후 빌드 |
+| `npm run preview` | 빌드 결과 미리보기 |
+| `npm run lint` | ESLint |
+| `npm run screenshots` | PR 본문에 스크린샷을 찍어 붙입니다 |
 
-### Commit Convention
+## 배포 🚀
 
-| **타입 (Type)** | **설명** | **예시 커밋 메시지** |
-| --- | --- | --- |
-| `feat` | 새로운 기능 추가 | `feat: 회원가입 기능 추가` |
-| `fix` | 버그 수정 | `fix: 로그인 실패 문제 해결` |
-| `docs` | 문서 관련 변경 (README, 주석 등) | `docs: README에 실습 개요 추가` |
-| `style` | 코드 스타일 변경 (공백, 세미콜론 등) | `style: 불필요한 줄바꿈 제거` |
-| `design` | 기능 변경 없이 CSS 스타일 등의 UI/UX 변경 | `design: 전역 스타일(theme) 색상 변경` |
-| `refactor` | 코드 리팩토링 (기능 변경 없음) | `refactor: 데이터 처리 로직 간소화` |
-| `test` | 테스트 코드 추가 또는 수정 | `test: 회원가입 기능에 대한 유닛 테스트 추가` |
-| `chore` | 설정 변경 및 기타 작업 | `chore: npm 패키지 업데이트` |
-| `perf` | 성능 최적화 | `perf: 렌더링 속도 개선` |
+`main` 에 push 하면 GitHub Actions 가 빌드해 Firebase Hosting 으로 내보냅니다. PR 에는 미리보기 채널이 붙습니다.
+
+Firebase 웹 설정은 번들에 실려 어차피 공개되는 값이라 저장소 **Variables** 에 둡니다. 서비스 계정 키만 Secret 입니다.
+
+**Firestore 보안 규칙은 배포에 포함되지 않습니다.** `firestore.rules` 를 고쳤다면 따로 내보내야 합니다.
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+## 문서 📚
+
+| 문서 | 내용 |
+| --- | --- |
+| [브랜치 컨벤션](docs/branch-convention.md) | 브랜치 이름 규칙 |
+| [커밋 컨벤션](docs/commit-convention.md) | 커밋 메시지 규칙 |
+| [이슈 컨벤션](docs/issue-convention.md) | 이슈 작성 규칙 |
+| [트러블슈팅](docs/troubleshooting.md) | 데이터 구조가 지금 모습이 된 과정 |
+
+## 앞으로 할 일 🤸‍♀️
+
+- **내 명함 관리** — 조회 · 수정 · 삭제. 지금 `/mypage` 는 비어 있습니다. 입력 원본과 비밀번호 해시는 이미 `private/card` 에 저장해두었습니다. 다만 비회원 비밀번호 검증은 서버에서만 할 수 있어, Cloud Functions 없이 갈 방법을 정해야 합니다.
+- **비회원 명함 대량 생성 방지** — 지금은 인증 없이 만들 수 있습니다. App Check 또는 서버 검증이 필요합니다.
+- **회원 / 비회원 컬렉션 통합 검토** — `cards` 와 `guestCards` 로 나뉘어 있어 조회할 때마다 양쪽을 봅니다. ([#32](https://github.com/hyeoniverse/QRU/issues/32))
 
 ## 팀원 및 역할 👥
 
 ### 김정현 🔗 [Hyeon](https://github.com/hyeoniverse)
 
-- [Readme.md](http://readme.md/) 작성
-- 기획
+- 기획 및 설계
+- 프론트엔드 개발
+- Firebase 연동 및 보안 규칙
