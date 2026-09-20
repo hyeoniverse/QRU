@@ -159,8 +159,8 @@ service cloud.firestore {
       allow list: if false;
 
       // 이미 있는 문서면 create 가 실패하므로 남의 번호를 덮어쓸 수 없다.
-      allow create: if request.resource.data.keys().hasOnly([collection, cardId, uid])
-        && request.resource.data.collection in [cards, guestCards]
+      allow create: if request.resource.data.keys().hasOnly(['collection', 'cardId', 'uid'])
+        && request.resource.data.collection in ['cards', 'guestCards']
         && request.resource.data.cardId is string
         && request.resource.data.cardId.size() <= 64;
 
