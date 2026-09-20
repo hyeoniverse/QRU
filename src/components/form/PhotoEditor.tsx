@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { FaCheck, FaImage, FaMagnifyingGlassMinus, FaMagnifyingGlassPlus, FaX } from "react-icons/fa6";
 
@@ -6,13 +7,22 @@ import { CropRect, cropToDataUrl } from "../../utils/imageUtil";
 import Button from "../common/Button";
 import Loading from "../common/Loading";
 
-/** 확대 범위. 1 이면 사진이 원형에 꽉 차는 상태다. */
-const MIN_ZOOM = 1;
+/**
+ * 확대 범위. 1 이면 사진이 원형에 꽉 차는 상태다.
+ *
+ * 1 아래로도 내려간다. 사진 전체를 담고 싶을 때가 있는데, 꽉 차는
+ * 크기가 최소라면 가장자리를 반드시 잘라내야 한다. 빈 곳은 흰색으로
+ * 남는다.
+ */
+const MIN_ZOOM = 0.4;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.2;
 
 /** 화살표 키로 한 번에 움직이는 거리 */
 const NUDGE = 8;
+
+/** 원에 꽉 차는 배율. 처음 열었을 때의 크기다. */
+const COVER_ZOOM = 1;
 
 interface Props {
   /** 편집할 사진. 데이터 URL */
@@ -75,20 +85,30 @@ function PhotoEditor({ source, onApply, onCancel, onPickAnother, onError }: Prop
    */
   const isReady = Boolean(natural) && viewSize > 0;
 
-  /** 빈 곳이 드러나지 않도록 움직일 수 있는 범위로 가둔다. */
+  /**
+   * 움직일 수 있는 범위로 가둔다.
+   *
+   * 사진이 원보다 크면 빈 곳이 드러나지 않도록 가두고, 작으면
+   * 원 밖으로 나가지 않도록 가둔다. 두 경우의 경계가 뒤집힌다.
+   */
+  const clampAxis = useCallback(
+    (value: number, size: number) =>
+      size >= viewSize
+        ? clamp(value, viewSize - size, 0)
+        : clamp(value, 0, viewSize - size),
+    [viewSize]
+  );
+
   const clampOffset = useCallback(
     (next: { x: number; y: number }, atScale: number) => {
       if (!natural) return next;
 
-      const width = natural.width * atScale;
-      const height = natural.height * atScale;
-
       return {
-        x: clamp(next.x, viewSize - width, 0),
-        y: clamp(next.y, viewSize - height, 0),
+        x: clampAxis(next.x, natural.width * atScale),
+        y: clampAxis(next.y, natural.height * atScale),
       };
     },
-    [natural, viewSize]
+    [clampAxis, natural]
   );
 
   const center = useCallback(
@@ -106,14 +126,15 @@ function PhotoEditor({ source, onApply, onCancel, onPickAnother, onError }: Prop
   const handleLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
     const { naturalWidth, naturalHeight } = event.currentTarget;
     setNatural({ width: naturalWidth, height: naturalHeight });
-    setZoom(MIN_ZOOM);
+    // 처음에는 원에 꽉 차게 둔다. 줄이는 건 사용자가 고르는 일이다.
+    setZoom(COVER_ZOOM);
   };
 
   // 사진이나 원 크기가 바뀌면 가운데에서 다시 시작한다.
   useEffect(() => {
     if (!natural || !viewSize) return;
-    setOffset(center(baseScale * MIN_ZOOM));
-    setZoom(MIN_ZOOM);
+    setOffset(center(baseScale * COVER_ZOOM));
+    setZoom(COVER_ZOOM);
   }, [natural, viewSize, baseScale, center]);
 
   /** 원의 한가운데를 붙잡은 채 배율만 바꾼다. */
@@ -201,7 +222,14 @@ function PhotoEditor({ source, onApply, onCancel, onPickAnother, onError }: Prop
     }
   };
 
-  return (
+  /*
+   * 모달 바깥(body)에 그린다.
+   *
+   * 폼 스크롤 영역에는 backdrop-filter 가 걸려 있는데, 그것이
+   * position: fixed 자손의 기준 상자가 된다. 그 안에 두면 화면이
+   * 아니라 스크롤 영역에 갇혀 잘린다.
+   */
+  return createPortal(
     <StyledPhotoEditor role="dialog" aria-modal="true" aria-label="사진 편집">
       <div className="editor-panel">
         <p className="editor-title">사진 맞추기</p>
@@ -281,7 +309,8 @@ function PhotoEditor({ source, onApply, onCancel, onPickAnother, onError }: Prop
           </Button>
         </div>
       </div>
-    </StyledPhotoEditor>
+    </StyledPhotoEditor>,
+    document.body
   );
 }
 
