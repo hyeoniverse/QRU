@@ -14,6 +14,7 @@ import {
 } from "../services/card";
 import { isFirebaseConfigured } from "../services/firebase";
 import { CardFormInitial } from "../hooks/useCardForm";
+import { useNoIndex } from "../hooks/useNoIndex";
 import Button from "../components/common/Button";
 import CardView from "../components/card/CardView";
 import CardShare from "../components/card/CardShare";
@@ -34,6 +35,9 @@ function Card() {
   const user = useSelector((rootState: RootState) => rootState.auth.user);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // 신상이 담긴 화면이라 검색에 걸리지 않게 한다.
+  useNoIndex();
 
   const [initial, setInitial] = useState<CardFormInitial | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);

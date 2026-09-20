@@ -24,7 +24,8 @@ function ShuffleCard({ card }: Props) {
 
   return (
     <li>
-      <Link className="shuffle-card" to={`/cards/${card.id}`}>
+      {/* 크롤러가 남의 명함까지 따라 들어가지 않게 한다. */}
+      <Link className="shuffle-card" rel="nofollow" to={`/cards/${card.id}`}>
         <CardPreview entries={card.entries} photo={photo} />
       </Link>
     </li>

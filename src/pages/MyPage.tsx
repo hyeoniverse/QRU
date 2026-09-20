@@ -8,6 +8,7 @@ import { RootState } from "../store";
 import { listMyCards } from "../services/card";
 import { isFirebaseConfigured } from "../services/firebase";
 import { findEntry } from "../utils/cardUtil";
+import { useNoIndex } from "../hooks/useNoIndex";
 
 import DeleteCardButton from "../components/card/DeleteCardButton";
 import FirebaseNotice from "../components/common/FirebaseNotice";
@@ -25,6 +26,9 @@ const formatDate = (date: Date | null) =>
 
 function MyPage() {
   const user = useSelector((state: RootState) => state.auth.user);
+
+  // 남의 명함까지 담기는 화면이라 검색에 걸리지 않게 한다.
+  useNoIndex();
   const isAuthLoading = useSelector((state: RootState) => state.auth.isLoading);
   const {
     data: cards,
@@ -98,7 +102,7 @@ function MyPage() {
             return (
               <li className="mypage-item" key={card.id}>
                 {/* 카드 전체가 하나의 이동 버튼이다. */}
-                <Link className="item-link" to={`/cards/${card.id}`}>
+                <Link className="item-link" rel="nofollow" to={`/cards/${card.id}`}>
                   <span className="item-name">{name ?? "이름 비공개"}</span>
                   {bio && <span className="item-bio">{bio}</span>}
                   <span className="item-meta">
