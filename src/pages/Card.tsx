@@ -1,13 +1,18 @@
-import { useLocation, useParams } from "react-router-dom";
-import { useQuery } from "react-query";
+import { useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { useQuery, useQueryClient } from "react-query";
 import styled from "styled-components";
-import { FaCircleInfo } from "react-icons/fa6";
+import { FaCircleInfo, FaPen } from "react-icons/fa6";
 
-import { getCard, getCardPhoto } from "../services/card";
+import { RootState } from "../store";
+import { getCard, getCardPhoto, getPrivateCard } from "../services/card";
 import { isFirebaseConfigured } from "../services/firebase";
-import CopyText from "../components/common/CopyText";
+import { CardFormInitial } from "../hooks/useCardForm";
+import Button from "../components/common/Button";
 import CardView from "../components/card/CardView";
 import CardShare from "../components/card/CardShare";
+import EditCardModal from "../components/card/EditCardModal";
 import FirebaseNotice from "../components/common/FirebaseNotice";
 import Loading from "../components/common/Loading";
 import Title from "../components/common/Title";
@@ -20,6 +25,12 @@ interface CardLocationState {
 function Card() {
   const { id } = useParams<{ id: string }>();
   const { state } = useLocation() as { state: CardLocationState | null };
+  const user = useSelector((rootState: RootState) => rootState.auth.user);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [initial, setInitial] = useState<CardFormInitial | null>(null);
+  const [isPreparing, setIsPreparing] = useState(false);
 
   const {
     data: card,
@@ -77,6 +88,32 @@ function Card() {
   }
 
   const cardUrl = `${window.location.origin}/cards/${card.id}`;
+  // 내 명함이면 이 화면에서 바로 고칠 수 있다.
+  const isOwner = Boolean(user?.uid) && card.uid === user?.uid;
+
+  /**
+   * 수정 화면에 필요한 것을 모아서 연다.
+   *
+   * 공개 문서에는 공개 항목만 들어 있어 그대로는 폼을 채울 수 없다.
+   * 입력 원본을 따로 읽어야 한다.
+   */
+  const handleEdit = async () => {
+    setIsPreparing(true);
+
+    try {
+      const priv = await getPrivateCard(card);
+      if (!priv) return;
+
+      setInitial({
+        values: priv.values,
+        isPublic: priv.isPublic,
+        inShuffle: card.inShuffle,
+        photo: photo ?? null,
+      });
+    } finally {
+      setIsPreparing(false);
+    }
+  };
 
   return (
     <StyledCardPage>
@@ -92,13 +129,40 @@ function Card() {
 
       <div className="card-panel">
         <CardView entries={card.entries} photo={photo} />
-        <CardShare url={cardUrl} serialNumber={card.serialNumber} />
+        <CardShare
+          url={cardUrl}
+          serialNumber={card.serialNumber}
+          actions={
+            isOwner && (
+              <Button
+                type="button"
+                size="small"
+                scheme="primary"
+                disabled={isPreparing}
+                onClick={() => void handleEdit()}
+              >
+                {isPreparing ? <Loading size="small" /> : <FaPen />} 명함 편집
+              </Button>
+            )
+          }
+        />
       </div>
 
-      {card.serialNumber && (
-        <p className="card-serial">
-          일련번호 <CopyText value={card.serialNumber} label="일련번호" />
-        </p>
+      {initial && (
+        <EditCardModal
+          card={card}
+          initial={initial}
+          onClose={() => setInitial(null)}
+          onSaved={() => {
+            void queryClient.invalidateQueries(["card", card.id]);
+            void queryClient.invalidateQueries(["card-photo", card.id]);
+            void queryClient.invalidateQueries(["my-cards"]);
+          }}
+          onDeleted={() => {
+            void queryClient.invalidateQueries(["my-cards"]);
+            navigate("/mypage", { replace: true });
+          }}
+        />
       )}
     </StyledCardPage>
   );
@@ -141,12 +205,17 @@ const StyledCardPage = styled.div`
     }
   }
 
+  /*
+   * 위쪽은 두 칸(사람 / 공유), 아래쪽은 한 칸이다.
+   *
+   * 공유 묶음 옆으로 항목을 세우면 그 아래가 통째로 비어 보인다.
+   * 항목은 카드 너비를 다 쓰게 하고, 공유는 위쪽 한 칸만 차지한다.
+   */
   .card-panel {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 2.5rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 2rem 2.5rem;
     width: 100%;
     padding: 2.5rem;
 
@@ -155,21 +224,41 @@ const StyledCardPage = styled.div`
     box-shadow: ${({ theme }) => theme.shadow.strong};
   }
 
-  .card-serial {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 0;
-    font-size: ${({ theme }) => theme.fontSize.extraSmall};
-    color: ${({ theme }) => theme.color.textSecondary};
+  /* 명함 본문은 자기 상자를 두지 않고 바깥 격자에 그대로 놓인다. */
+  .card-panel > article {
+    display: contents;
+  }
+
+  .card-panel .card-header {
+    grid-column: 1;
+    grid-row: 1;
+    /* 옆의 공유 묶음과 높이가 달라도 가운데에서 만나게 한다. */
+    align-self: center;
+  }
+
+  .card-panel .card-groups {
+    grid-column: 1 / -1;
+  }
+
+  .card-panel .card-empty {
+    grid-column: 1 / -1;
+  }
+
+  .card-panel > aside {
+    grid-column: 2;
+    grid-row: 1;
   }
 
   @media screen and ${({ theme }) => theme.mediaQuery.mobile} {
     .card-panel {
-      flex-direction: column;
-      align-items: center;
-      gap: 2rem;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.5rem;
       padding: 1.5rem;
+    }
+
+    .card-panel > aside {
+      grid-column: 1;
+      grid-row: auto;
     }
   }
 `;

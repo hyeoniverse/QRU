@@ -137,13 +137,21 @@ function CardFormModal({
         <div className="form-content" ref={scrollRef}>
           {isFirebaseConfigured ? (
             <>
-              <PhotoPicker
-                value={form.photo}
-                onChange={form.changePhoto}
-                onError={(message) =>
-                  dispatch(addToast({ type: "error", message }))
-                }
-              />
+              <div className="form-photo">
+                <PhotoPicker
+                  value={form.photo}
+                  onChange={form.changePhoto}
+                  onError={(message) =>
+                    dispatch(addToast({ type: "error", message }))
+                  }
+                />
+                <div className="form-photo-text">
+                  <p className="photo-title">사진</p>
+                  <p className="photo-hint">
+                    동그라미를 누르면 사진을 넣고, 위치와 크기를 맞출 수 있습니다.
+                  </p>
+                </div>
+              </div>
               <Form
                 fields={form.fields}
                 values={form.values}
@@ -217,10 +225,39 @@ const StyledCardFormModal = styled.div`
     }
   }
 
+  /* 사진 옆이 통째로 비지 않도록 무엇을 하는 자리인지 함께 둔다. */
+  .form-photo {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .form-photo-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .photo-title {
+    margin: 0;
+    font-size: ${({ theme }) => theme.fontSize.small};
+    font-weight: bold;
+    color: ${({ theme }) => theme.color.primary};
+  }
+
+  .photo-hint {
+    margin: 0;
+    font-size: ${({ theme }) => theme.fontSize.extraSmall};
+    color: ${({ theme }) => theme.color.textSecondary};
+    line-height: 1.5;
+    word-break: keep-all;
+  }
+
   .form-content {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
     padding: 0 2rem 2rem 2rem;
     overflow-y: scroll;
     /* 폼 끝까지 스크롤해도 뒤쪽 페이지로 스크롤이 넘어가지 않도록 한다. */

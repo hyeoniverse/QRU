@@ -25,8 +25,10 @@ interface Props {
   /** 불러온 입력 원본. 이 값으로 폼을 채운다. */
   initial: CardFormInitial;
   onClose: () => void;
-  /** 저장이나 삭제가 끝나 목록을 다시 읽어야 할 때 */
-  onChanged: () => void;
+  /** 저장이 끝나 화면을 다시 읽어야 할 때 */
+  onSaved: () => void;
+  /** 명함이 사라졌을 때. 보고 있던 화면을 떠나야 한다. */
+  onDeleted: () => void;
 }
 
 /**
@@ -36,7 +38,7 @@ interface Props {
  * initial 은 첫 렌더에서만 읽히므로, 불러오기가 끝난 뒤에 이 컴포넌트를
  * 마운트해야 한다.
  */
-function EditCardModal({ card, initial, onClose, onChanged }: Props) {
+function EditCardModal({ card, initial, onClose, onSaved, onDeleted }: Props) {
   const dispatch = useDispatch();
   const form = useCardForm(initial);
 
@@ -63,7 +65,7 @@ function EditCardModal({ card, initial, onClose, onChanged }: Props) {
         photo: form.photo,
       });
       notify("success", "명함을 저장했습니다.");
-      onChanged();
+      onSaved();
       onClose();
     } catch (error) {
       console.error("Error updating card:", error);
@@ -79,8 +81,7 @@ function EditCardModal({ card, initial, onClose, onChanged }: Props) {
     try {
       await deleteCard(card);
       notify("success", "명함을 삭제했습니다.");
-      onChanged();
-      onClose();
+      onDeleted();
     } catch (error) {
       console.error("Error deleting card:", error);
       notify("error", "명함 삭제 중 오류가 발생했습니다.");

@@ -65,14 +65,20 @@ const StyledForm = styled.form`
   align-items: start;
   gap: 1.25rem 1rem;
 
+  /*
+   * 묶음 제목이 항목 이름보다 눈에 먼저 들어와야 한다.
+   * 항목 이름이 더 굵으면 어디서 묶음이 바뀌는지 알아채기 어렵다.
+   */
   .form-group-title {
     grid-column: 1 / -1;
-    margin: 1rem 0 0;
+    margin: 1.25rem 0 0;
     padding-bottom: 0.5rem;
 
     font-size: ${({ theme }) => theme.fontSize.small};
+    font-weight: bold;
+    letter-spacing: 0.04em;
     color: ${({ theme }) => theme.color.primary};
-    border-bottom: 1px solid ${({ theme }) => theme.color.blur};
+    border-bottom: 1px solid ${({ theme }) => theme.color.secondary};
 
     &:first-child {
       margin-top: 0;
@@ -115,7 +121,8 @@ const StyledForm = styled.form`
     }
 
     .field-label {
-      font-weight: bold;
+      font-size: ${({ theme }) => theme.fontSize.small};
+      color: ${({ theme }) => theme.color.textSecondary};
     }
 
     /* 공개 여부는 오른쪽 끝에 붙여 라벨과 헷갈리지 않게 한다. */
