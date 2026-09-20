@@ -209,21 +209,38 @@ export const searchCards = async (
     .filter((card) => matchesSearchText(card.entries, criteria.text ?? ""));
 };
 
+/** 순서를 뒤섞는다. 원본은 건드리지 않는다. */
+const shuffled = <T,>(items: T[]): T[] => {
+  const copy = [...items];
+
+  for (let at = copy.length - 1; at > 0; at -= 1) {
+    const pick = Math.floor(Math.random() * (at + 1));
+    [copy[at], copy[pick]] = [copy[pick], copy[at]];
+  }
+
+  return copy;
+};
+
 /**
- * 조건에 맞는 명함 한 장을 무작위로 고른다.
- * 직전에 본 명함(exclude)은 되도록 피하지만, 그것밖에 없으면 그대로 돌려준다.
+ * 조건에 맞는 명함을 무작위로 몇 장 고른다.
+ *
+ * 직전에 보여준 명함(exclude)은 뒤로 미룬다. 다시 눌렀을 때 같은
+ * 얼굴만 나오면 다시 누를 이유가 없다. 다만 후보가 그것뿐이면
+ * 빈손으로 돌려주지 않고 그대로 보여준다.
  */
-export const fetchRandomCard = async (
+export const fetchRandomCards = async (
   criteria: CardSearchCriteria = {},
-  exclude?: string
-): Promise<CardDocument | null> => {
+  count: number,
+  exclude: string[] = []
+): Promise<CardDocument[]> => {
   const candidates = await searchCards(criteria);
-  if (candidates.length === 0) return null;
+  if (candidates.length === 0) return [];
 
-  const fresh = candidates.filter((card) => card.id !== exclude);
-  const pool = fresh.length > 0 ? fresh : candidates;
+  const seen = new Set(exclude);
+  const fresh = shuffled(candidates.filter((card) => !seen.has(card.id)));
+  const rest = shuffled(candidates.filter((card) => seen.has(card.id)));
 
-  return pool[Math.floor(Math.random() * pool.length)];
+  return [...fresh, ...rest].slice(0, count);
 };
 
 /**
