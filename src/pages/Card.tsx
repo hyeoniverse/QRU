@@ -5,6 +5,7 @@ import { FaCircleInfo } from "react-icons/fa6";
 
 import { getCard, getCardPhoto } from "../services/card";
 import { isFirebaseConfigured } from "../services/firebase";
+import CopyText from "../components/common/CopyText";
 import CardView from "../components/card/CardView";
 import CardShare from "../components/card/CardShare";
 import FirebaseNotice from "../components/common/FirebaseNotice";
@@ -96,7 +97,7 @@ function Card() {
 
       {card.serialNumber && (
         <p className="card-serial">
-          일련번호 <code>{card.serialNumber}</code>
+          일련번호 <CopyText value={card.serialNumber} label="일련번호" />
         </p>
       )}
     </StyledCardPage>
@@ -155,16 +156,12 @@ const StyledCardPage = styled.div`
   }
 
   .card-serial {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin: 0;
     font-size: ${({ theme }) => theme.fontSize.extraSmall};
     color: ${({ theme }) => theme.color.textSecondary};
-
-    code {
-      user-select: text;
-      font-size: ${({ theme }) => theme.fontSize.small};
-      letter-spacing: 0.1em;
-      color: ${({ theme }) => theme.color.text};
-    }
   }
 
   @media screen and ${({ theme }) => theme.mediaQuery.mobile} {
