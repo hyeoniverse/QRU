@@ -8,6 +8,7 @@ import {
   fetchRandomCards,
 } from "../services/card";
 import { isFirebaseConfigured } from "../services/firebase";
+import { useNoIndex } from "../hooks/useNoIndex";
 import { CardDocument } from "../types/cardType";
 import { labelSearchKey } from "../utils/cardUtil";
 import { SELF_VALUE } from "../utils/formUtil";
@@ -63,6 +64,9 @@ const SHUFFLE_COUNT = 5;
 const SEARCH_DEBOUNCE_MS = 300;
 
 function Shuffle() {
+  // 남의 명함이 늘어서는 화면이라 검색에 걸리지 않게 한다.
+  useNoIndex();
+
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [text, setText] = useState("");
   const [cards, setCards] = useState<CardDocument[]>([]);

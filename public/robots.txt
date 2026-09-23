@@ -1,0 +1,8 @@
+# 명함과 마이페이지는 검색에 걸리면 안 된다. 신상이 담긴다.
+#
+# 다만 여기서 Disallow 로 막지는 않는다. 막으면 크롤러가 페이지를
+# 열어보지 못해 noindex 를 읽을 수 없고, 주소만 검색 결과에 남는다.
+# 대신 그 경로들은 X-Robots-Tag: noindex 로 내려준다.
+# (firebase.json 의 headers)
+User-agent: *
+Allow: /
