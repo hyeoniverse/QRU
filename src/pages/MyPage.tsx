@@ -1,15 +1,18 @@
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { useQuery } from "react-query";
 import styled from "styled-components";
 import { FaChevronRight } from "react-icons/fa6";
+import { FaGoogle } from "react-icons/fa";
 
-import { RootState } from "../store";
+import { AppDispatch, RootState } from "../store";
+import { login } from "../store/slices/authSlice";
 import { listMyCards } from "../services/card";
 import { isFirebaseConfigured } from "../services/firebase";
 import { findEntry } from "../utils/cardUtil";
 
 import DeleteCardButton from "../components/card/DeleteCardButton";
+import Button from "../components/common/Button";
 import FirebaseNotice from "../components/common/FirebaseNotice";
 import Loading from "../components/common/Loading";
 import Title from "../components/common/Title";
@@ -24,6 +27,7 @@ const formatDate = (date: Date | null) =>
     : "";
 
 function MyPage() {
+  const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
   const isAuthLoading = useSelector((state: RootState) => state.auth.isLoading);
   const {
@@ -73,6 +77,22 @@ function MyPage() {
           <span className="mypage-count">{cards.length}장</span>
         )}
       </header>
+
+      {/*
+        * 계정 없이 만든 명함은 이 기기에만 묶여 있다. 브라우저를 지우면
+        * 되찾을 방법이 없으므로, 지우기 전에 알려둔다.
+        */}
+      {user.isAnonymous && (
+        <div className="mypage-notice">
+          <p>
+            이 명함들은 <strong>지금 쓰는 브라우저에만</strong> 묶여 있습니다.
+            로그인하면 계정으로 옮겨져 다른 기기에서도 관리할 수 있습니다.
+          </p>
+          <Button type="button" size="small" onClick={() => dispatch(login())}>
+            <FaGoogle /> 로그인해서 옮기기
+          </Button>
+        </div>
+      )}
 
       {isLoading && <Loading />}
 
@@ -139,6 +159,36 @@ const StyledMyPage = styled.div`
     display: flex;
     align-items: baseline;
     gap: 0.75rem;
+  }
+
+  .mypage-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+
+    border-radius: ${({ theme }) => theme.borderRadius.default};
+    background: ${({ theme }) => theme.color.secondary};
+    color: ${({ theme }) => theme.color.onSecondary};
+
+    p {
+      margin: 0;
+      font-size: ${({ theme }) => theme.fontSize.small};
+      line-height: 1.5;
+      word-break: keep-all;
+    }
+
+    button {
+      flex-shrink: 0;
+    }
+  }
+
+  @media screen and ${({ theme }) => theme.mediaQuery.mobile} {
+    .mypage-notice {
+      flex-direction: column;
+      align-items: stretch;
+    }
   }
 
   .mypage-count,

@@ -3,17 +3,16 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { FaPen } from "react-icons/fa6";
 
-import { RootState } from "../../store";
+import { AppDispatch, RootState } from "../../store";
+import { ensureUser } from "../../store/slices/authSlice";
 import { closeModal } from "../../store/slices/modalSlice";
 import { ToastType, addToast } from "../../store/slices/toastSlice";
 import { MAX_CUSTOM_FIELDS } from "../../data/formFields";
 import { useCardForm } from "../../hooks/useCardForm";
 import { NewCard } from "../../types/cardType";
 import { createCard } from "../../services/card";
-import { hashPassword } from "../../utils/passwordUtil";
 
 import CardFormModal from "../form/CardFormModal";
-import PasswordPopup from "./PasswordPopup";
 
 const GUIDE = `1. "항목 추가 버튼"으로 추가적인 정보를 입력할 수 있습니다.
 * 최대 ${MAX_CUSTOM_FIELDS}개까지 추가 가능합니다.
@@ -21,34 +20,29 @@ const GUIDE = `1. "항목 추가 버튼"으로 추가적인 정보를 입력할 
 * 필수 입력 항목을 모두 입력해야 합니다.
 3. 각 항목에 대한 공개 여부를 선택할 수 있습니다.
 * 공개로 설정하신 항목의 내용은 비울 수 없습니다.
-4. 비회원의 경우 1개월 동안만 명함이 유지됩니다.
-5. 비회원의 경우 생성한 명함을 수정 및 삭제하기 위해서는 생성 시 고지된 일련번호와 입력하신 비밀번호가 필요합니다.
-* 회원의 경우 마이 페이지에서 명함을 확인 및 관리할 수 있습니다.`;
+4. 만든 명함은 마이 페이지에서 언제든 고치거나 지울 수 있습니다.
+* 로그인하지 않아도 이 기기에서는 그대로 남아 있습니다.
+* 다른 기기에서도 관리하려면 로그인해주세요.`;
 
 function NewCardModal() {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
   const isModalOpen = useSelector((state: RootState) => state.modal.isModalOpen);
 
   const navigate = useNavigate();
 
   const form = useCardForm();
-  // 비회원은 비밀번호를 받은 뒤에 저장하므로 제출할 내용을 잠시 들고 있는다.
-  const [pendingCard, setPendingCard] = useState<NewCard | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const notify = (type: ToastType, message: string) =>
     dispatch(addToast({ type, message }));
 
   const handleClose = () => {
-    setPendingCard(null);
     form.reset();
     dispatch(closeModal());
   };
 
   const saveCard = async (input: NewCard) => {
-    setIsSaving(true);
-
     try {
       const { id } = await createCard(input);
       notify("success", "명함이 생성되었습니다.");
@@ -63,7 +57,13 @@ function NewCardModal() {
     }
   };
 
-  const handleSubmit = () => {
+  /**
+   * 명함을 만든다.
+   *
+   * 로그인하지 않았다면 계정 없이 쓸 수 있는 uid 를 먼저 챙긴다.
+   * 소유자가 있어야 나중에 고치거나 지울 수 있다.
+   */
+  const handleSubmit = async () => {
     const [firstError] = Object.values(form.validate());
 
     if (firstError) {
@@ -71,49 +71,43 @@ function NewCardModal() {
       return;
     }
 
+    setIsSaving(true);
+
+    let owner = user;
+
+    if (!owner) {
+      try {
+        owner = await dispatch(ensureUser()).unwrap();
+      } catch (error) {
+        console.error("Error preparing owner:", error);
+        setIsSaving(false);
+        notify("error", "명함을 만들 준비에 실패했습니다. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+    }
+
     const input: NewCard = {
       ...form.getSubmitData(),
-      uid: user?.uid ?? null,
+      uid: owner.uid,
       inShuffle: form.inShuffle,
       ...(form.photo ? { photo: form.photo } : {}),
     };
 
-    if (!user) {
-      setPendingCard(input);
-      return;
-    }
-
-    void saveCard(input);
-  };
-
-  const handlePasswordSubmit = async (password: string) => {
-    if (!pendingCard) return;
-
-    await saveCard({ ...pendingCard, password: await hashPassword(password) });
+    await saveCard(input);
   };
 
   return (
-    <>
-      <CardFormModal
-        isOpen={isModalOpen}
-        onClose={handleClose}
-        form={form}
-        submitIcon={<FaPen />}
-        submitLabel="명함 생성"
-        isSaving={isSaving}
-        onSubmit={handleSubmit}
-        guide={GUIDE}
-        notice="명함을 만들고 저장하려면 Firebase 연결이 필요합니다."
-      />
-
-      {pendingCard && (
-        <PasswordPopup
-          isSubmitting={isSaving}
-          onSubmit={handlePasswordSubmit}
-          onCancel={() => setPendingCard(null)}
-        />
-      )}
-    </>
+    <CardFormModal
+      isOpen={isModalOpen}
+      onClose={handleClose}
+      form={form}
+      submitIcon={<FaPen />}
+      submitLabel="명함 생성"
+      isSaving={isSaving}
+      onSubmit={() => void handleSubmit()}
+      guide={GUIDE}
+      notice="명함을 만들고 저장하려면 Firebase 연결이 필요합니다."
+    />
   );
 }
 

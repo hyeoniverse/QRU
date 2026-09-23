@@ -74,7 +74,12 @@ export type PrivateCard = {
   uid: string | null;
   values: FormValues;
   isPublic: FormVisibility;
-  /** 비회원이 명함을 관리할 때 쓰는 비밀번호 해시 (검증은 서버에서만 가능) */
+  /**
+   * 예전에 비회원이 쓰던 비밀번호 해시.
+   *
+   * 지금은 계정 없이도 uid 로 소유권을 가리므로 새로 쓰지 않는다.
+   * 그때 만들어진 문서를 읽을 수 있도록 남겨둔다.
+   */
   password?: PasswordDigest;
 };
 
@@ -109,5 +114,4 @@ export type NewCard = {
   inShuffle: boolean;
   /** 줄여서 담은 JPEG 데이터 URL. 없으면 사진 없이 만든다. */
   photo?: string;
-  password?: PasswordDigest;
 };
